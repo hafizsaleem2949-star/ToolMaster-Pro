@@ -23,55 +23,83 @@ function App() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    loadSession()
+    let mounted = true
+
+    const start = async () => {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      if (error) {
+        setMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      setSession(data.session)
+
+      if (data.session) {
+        await loadProfile(data.session.user.id)
+      } else {
+        setLoading(false)
+      }
+    }
+
+    start()
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+    } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (!mounted) return
 
-      if (!session) {
+      setSession(currentSession)
+
+      if (event === 'SIGNED_OUT' || !currentSession) {
         setProfile(null)
         setUsers([])
         setLoading(false)
-      } else {
-        loadProfile(session.user.id)
+        return
       }
+
+      setTimeout(() => {
+        if (mounted && currentSession) {
+          loadProfile(currentSession.user.id)
+        }
+      }, 0)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  async function loadSession() {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    setSession(session)
-
-    if (session) {
-      await loadProfile(session.user.id)
-    } else {
-      setLoading(false)
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
     }
-  }
+  }, [])
 
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, role, created_at')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
 
     if (error) {
-      console.error(error)
+      console.error('Profile error:', error)
+      setMessage(error.message)
       setProfile(null)
-    } else {
-      setProfile(data)
+      setLoading(false)
+      return
+    }
 
-      if (data.role === 'admin') {
-        loadUsers()
-      }
+    if (!data) {
+      setMessage('Profile not found. Please contact administrator.')
+      setProfile(null)
+      setLoading(false)
+      return
+    }
+
+    setProfile(data)
+
+    if (data.role === 'admin') {
+      await loadUsers()
     }
 
     setLoading(false)
@@ -86,8 +114,9 @@ function App() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error(error)
+      console.error('Users error:', error)
       setMessage(error.message)
+      setUsers([])
     } else {
       setUsers(data || [])
     }
@@ -95,7 +124,10 @@ function App() {
     setUsersLoading(false)
   }
 
-  async function changeRole(userId: string, newRole: 'user' | 'admin') {
+  async function changeRole(
+    userId: string,
+    newRole: 'user' | 'admin'
+  ) {
     const { error } = await supabase
       .from('profiles')
       .update({ role: newRole })
@@ -106,6 +138,7 @@ function App() {
       return
     }
 
+    setMessage('Role updated successfully.')
     await loadUsers()
   }
 
@@ -115,34 +148,55 @@ function App() {
     setLoading(true)
 
     if (isSignup) {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
 
       if (error) {
         setMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (data.session) {
+        await loadProfile(data.session.user.id)
       } else {
         setMessage(
-          'Account created. Agar email confirmation enabled hai to apni email verify karein.'
+          'Account created. Please verify your email, then login.'
         )
+        setLoading(false)
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
 
-      if (error) {
-        setMessage(error.message)
-      }
+      return
     }
 
-    setLoading(false)
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setMessage(error.message)
+      setLoading(false)
+      return
+    }
+
+    if (!data.session) {
+      setMessage('Login successful, but no session was created.')
+      setLoading(false)
+      return
+    }
+
+    setSession(data.session)
+    await loadProfile(data.session.user.id)
   }
 
   async function logout() {
     await supabase.auth.signOut()
+    setSession(null)
+    setProfile(null)
+    setUsers([])
     setEmail('')
     setPassword('')
     setMessage('')
@@ -153,6 +207,7 @@ function App() {
       <main className="auth-container">
         <div className="auth-card">
           <h2>Loading...</h2>
+          <p className="subtitle">Please wait</p>
         </div>
       </main>
     )
@@ -266,16 +321,18 @@ function App() {
                 )}
               </div>
 
-              {message && <p className="message">{message}</p>}
+              {message && (
+                <p className="message">{message}</p>
+              )}
             </section>
           ) : (
             <section>
               <h2>Welcome, User 👋</h2>
-              <p>Aap successfully login ho gaye hain.</p>
+              <p>You have successfully logged in.</p>
 
               <div className="dashboard-box">
                 <h3>Your Tools</h3>
-                <p>Aapke website tools yahan show kiye ja sakte hain.</p>
+                <p>Your available tools will appear here.</p>
               </div>
             </section>
           )}
@@ -375,7 +432,9 @@ function App() {
           </button>
         </form>
 
-        {message && <p className="message">{message}</p>}
+        {message && (
+          <p className="message">{message}</p>
+        )}
       </div>
     </main>
   )
