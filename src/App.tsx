@@ -1,4 +1,4 @@
- import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import { supabase } from './supabase'
 
@@ -6,12 +6,15 @@ type Profile = {
   id: string
   email: string | null
   role: 'user' | 'admin'
+  created_at: string
 }
 
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [users, setUsers] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
+  const [usersLoading, setUsersLoading] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -29,6 +32,7 @@ function App() {
 
       if (!session) {
         setProfile(null)
+        setUsers([])
         setLoading(false)
       } else {
         loadProfile(session.user.id)
@@ -55,7 +59,7 @@ function App() {
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, email, role')
+      .select('id, email, role, created_at')
       .eq('id', userId)
       .single()
 
@@ -64,9 +68,45 @@ function App() {
       setProfile(null)
     } else {
       setProfile(data)
+
+      if (data.role === 'admin') {
+        loadUsers()
+      }
     }
 
     setLoading(false)
+  }
+
+  async function loadUsers() {
+    setUsersLoading(true)
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, role, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error(error)
+      setMessage(error.message)
+    } else {
+      setUsers(data || [])
+    }
+
+    setUsersLoading(false)
+  }
+
+  async function changeRole(userId: string, newRole: 'user' | 'admin') {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    await loadUsers()
   }
 
   async function handleAuth(e: React.FormEvent) {
@@ -124,7 +164,11 @@ function App() {
         <div className="dashboard-card">
           <div className="top-bar">
             <div>
-              <h1>{profile.role === 'admin' ? 'Admin Dashboard' : 'User Dashboard'}</h1>
+              <h1>
+                {profile.role === 'admin'
+                  ? 'Admin Dashboard'
+                  : 'User Dashboard'}
+              </h1>
               <p>{profile.email}</p>
             </div>
 
@@ -137,9 +181,92 @@ function App() {
               <p>You have administrator access.</p>
 
               <div className="dashboard-box">
-                <h3>Admin Area</h3>
-                <p>User management and website controls yahan add kiye ja sakte hain.</p>
+                <div className="section-header">
+                  <div>
+                    <h3>User Management</h3>
+                    <p>Total users: {users.length}</p>
+                  </div>
+
+                  <button
+                    className="refresh-button"
+                    onClick={loadUsers}
+                    disabled={usersLoading}
+                  >
+                    {usersLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+
+                {usersLoading ? (
+                  <p>Loading users...</p>
+                ) : users.length === 0 ? (
+                  <p>No users found.</p>
+                ) : (
+                  <div className="users-table-wrapper">
+                    <table className="users-table">
+                      <thead>
+                        <tr>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Created</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {users.map((user) => (
+                          <tr key={user.id}>
+                            <td>{user.email || 'No email'}</td>
+
+                            <td>
+                              <span
+                                className={
+                                  user.role === 'admin'
+                                    ? 'role admin-role'
+                                    : 'role user-role'
+                                }
+                              >
+                                {user.role}
+                              </span>
+                            </td>
+
+                            <td>
+                              {new Date(
+                                user.created_at
+                              ).toLocaleDateString()}
+                            </td>
+
+                            <td>
+                              {user.id === profile.id ? (
+                                <span className="current-user">
+                                  Current Admin
+                                </span>
+                              ) : (
+                                <button
+                                  className="role-button"
+                                  onClick={() =>
+                                    changeRole(
+                                      user.id,
+                                      user.role === 'admin'
+                                        ? 'user'
+                                        : 'admin'
+                                    )
+                                  }
+                                >
+                                  {user.role === 'admin'
+                                    ? 'Make User'
+                                    : 'Make Admin'}
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
+
+              {message && <p className="message">{message}</p>}
             </section>
           ) : (
             <section>
@@ -163,7 +290,11 @@ function App() {
         <h1>ToolMaster Pro</h1>
 
         <p className="subtitle">
-          {isAdminLogin ? 'Admin Login' : isSignup ? 'Create Account' : 'User Login'}
+          {isAdminLogin
+            ? 'Admin Login'
+            : isSignup
+              ? 'Create Account'
+              : 'User Login'}
         </p>
 
         <div className="mode-buttons">
@@ -201,12 +332,15 @@ function App() {
               setMessage('')
             }}
           >
-            {isSignup ? 'Already have an account? Login' : 'Create new account'}
+            {isSignup
+              ? 'Already have an account? Login'
+              : 'Create new account'}
           </button>
         )}
 
         <form onSubmit={handleAuth}>
           <label>Email</label>
+
           <input
             type="email"
             placeholder="Enter email"
@@ -216,6 +350,7 @@ function App() {
           />
 
           <label>Password</label>
+
           <input
             type="password"
             placeholder="Enter password"
@@ -225,7 +360,11 @@ function App() {
             required
           />
 
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loading}
+          >
             {loading
               ? 'Please wait...'
               : isSignup
