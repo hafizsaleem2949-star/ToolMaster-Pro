@@ -1,121 +1,244 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+ import { useEffect, useState } from 'react'
 import './App.css'
+import { supabase } from './supabase'
+
+type Profile = {
+  id: string
+  email: string | null
+  role: 'user' | 'admin'
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [session, setSession] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isSignup, setIsSignup] = useState(false)
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    loadSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+
+      if (!session) {
+        setProfile(null)
+        setLoading(false)
+      } else {
+        loadProfile(session.user.id)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  async function loadSession() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    setSession(session)
+
+    if (session) {
+      await loadProfile(session.user.id)
+    } else {
+      setLoading(false)
+    }
+  }
+
+  async function loadProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, role')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      console.error(error)
+      setProfile(null)
+    } else {
+      setProfile(data)
+    }
+
+    setLoading(false)
+  }
+
+  async function handleAuth(e: React.FormEvent) {
+    e.preventDefault()
+    setMessage('')
+    setLoading(true)
+
+    if (isSignup) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (error) {
+        setMessage(error.message)
+      } else {
+        setMessage(
+          'Account created. Agar email confirmation enabled hai to apni email verify karein.'
+        )
+      }
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        setMessage(error.message)
+      }
+    }
+
+    setLoading(false)
+  }
+
+  async function logout() {
+    await supabase.auth.signOut()
+    setEmail('')
+    setPassword('')
+    setMessage('')
+  }
+
+  if (loading) {
+    return (
+      <main className="auth-container">
+        <div className="auth-card">
+          <h2>Loading...</h2>
+        </div>
+      </main>
+    )
+  }
+
+  if (session && profile) {
+    return (
+      <main className="dashboard">
+        <div className="dashboard-card">
+          <div className="top-bar">
+            <div>
+              <h1>{profile.role === 'admin' ? 'Admin Dashboard' : 'User Dashboard'}</h1>
+              <p>{profile.email}</p>
+            </div>
+
+            <button onClick={logout}>Logout</button>
+          </div>
+
+          {profile.role === 'admin' ? (
+            <section>
+              <h2>Welcome, Admin 👑</h2>
+              <p>You have administrator access.</p>
+
+              <div className="dashboard-box">
+                <h3>Admin Area</h3>
+                <p>User management and website controls yahan add kiye ja sakte hain.</p>
+              </div>
+            </section>
+          ) : (
+            <section>
+              <h2>Welcome, User 👋</h2>
+              <p>Aap successfully login ho gaye hain.</p>
+
+              <div className="dashboard-box">
+                <h3>Your Tools</h3>
+                <p>Aapke website tools yahan show kiye ja sakte hain.</p>
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <main className="auth-container">
+      <div className="auth-card">
+        <h1>ToolMaster Pro</h1>
 
-      <div className="ticks"></div>
+        <p className="subtitle">
+          {isAdminLogin ? 'Admin Login' : isSignup ? 'Create Account' : 'User Login'}
+        </p>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <div className="mode-buttons">
+          <button
+            type="button"
+            className={!isAdminLogin ? 'active' : ''}
+            onClick={() => {
+              setIsAdminLogin(false)
+              setIsSignup(false)
+              setMessage('')
+            }}
+          >
+            User Login
+          </button>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          <button
+            type="button"
+            className={isAdminLogin ? 'active' : ''}
+            onClick={() => {
+              setIsAdminLogin(true)
+              setIsSignup(false)
+              setMessage('')
+            }}
+          >
+            Admin Login
+          </button>
+        </div>
+
+        {!isAdminLogin && (
+          <button
+            type="button"
+            className="signup-toggle"
+            onClick={() => {
+              setIsSignup(!isSignup)
+              setMessage('')
+            }}
+          >
+            {isSignup ? 'Already have an account? Login' : 'Create new account'}
+          </button>
+        )}
+
+        <form onSubmit={handleAuth}>
+          <label>Email</label>
+          <input
+            type="email"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <label>Password</label>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            minLength={6}
+            required
+          />
+
+          <button type="submit" className="submit-button" disabled={loading}>
+            {loading
+              ? 'Please wait...'
+              : isSignup
+                ? 'Create Account'
+                : isAdminLogin
+                  ? 'Admin Login'
+                  : 'Login'}
+          </button>
+        </form>
+
+        {message && <p className="message">{message}</p>}
+      </div>
+    </main>
   )
 }
 
