@@ -20,6 +20,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [isSignup, setIsSignup] = useState(false)
   const [isAdminLogin, setIsAdminLogin] = useState(false)
+  const [activePage, setActivePage] = useState('dashboard')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -82,7 +83,6 @@ function App() {
       .maybeSingle()
 
     if (error) {
-      console.error('Profile error:', error)
       setMessage(error.message)
       setProfile(null)
       setLoading(false)
@@ -114,7 +114,6 @@ function App() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Users error:', error)
       setMessage(error.message)
       setUsers([])
     } else {
@@ -202,6 +201,14 @@ function App() {
     setMessage('')
   }
 
+  const totalUsers = users.length
+  const totalAdmins = users.filter(
+    (user) => user.role === 'admin'
+  ).length
+  const normalUsers = users.filter(
+    (user) => user.role === 'user'
+  ).length
+
   if (loading) {
     return (
       <main className="auth-container">
@@ -214,32 +221,168 @@ function App() {
   }
 
   if (session && profile) {
-    return (
-      <main className="dashboard">
-        <div className="dashboard-card">
-          <div className="top-bar">
-            <div>
-              <h1>
-                {profile.role === 'admin'
-                  ? 'Admin Dashboard'
-                  : 'User Dashboard'}
-              </h1>
-              <p>{profile.email}</p>
+    if (profile.role !== 'admin') {
+      return (
+        <main className="user-dashboard">
+          <div className="user-card">
+            <div className="user-topbar">
+              <div>
+                <h1>ToolMaster Pro</h1>
+                <p>{profile.email}</p>
+              </div>
+
+              <button onClick={logout}>Logout</button>
             </div>
 
-            <button onClick={logout}>Logout</button>
+            <h2>Welcome 👋</h2>
+            <p>You have successfully logged in.</p>
+
+            <div className="user-tools-box">
+              <h3>Your Tools</h3>
+              <p>Your available tools will appear here.</p>
+            </div>
+          </div>
+        </main>
+      )
+    }
+
+    return (
+      <div className="admin-layout">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-icon">TM</div>
+            <div>
+              <h2>ToolMaster</h2>
+              <span>Admin Panel</span>
+            </div>
           </div>
 
-          {profile.role === 'admin' ? (
-            <section>
-              <h2>Welcome, Admin 👑</h2>
-              <p>You have administrator access.</p>
+          <nav>
+            <button
+              className={
+                activePage === 'dashboard'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => setActivePage('dashboard')}
+            >
+              🏠 Dashboard
+            </button>
 
-              <div className="dashboard-box">
-                <div className="section-header">
+            <button
+              className={
+                activePage === 'users'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => setActivePage('users')}
+            >
+              👥 Users
+            </button>
+
+            <button
+              className={
+                activePage === 'tools'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => setActivePage('tools')}
+            >
+              🛠️ Tools
+            </button>
+
+            <button
+              className={
+                activePage === 'statistics'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => setActivePage('statistics')}
+            >
+              📊 Statistics
+            </button>
+
+            <button
+              className={
+                activePage === 'settings'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() => setActivePage('settings')}
+            >
+              ⚙️ Settings
+            </button>
+          </nav>
+
+          <button className="logout-button" onClick={logout}>
+            🚪 Logout
+          </button>
+        </aside>
+
+        <main className="admin-main">
+          <header className="admin-header">
+            <div>
+              <h1>
+                {activePage === 'dashboard' && 'Dashboard'}
+                {activePage === 'users' && 'User Management'}
+                {activePage === 'tools' && 'Tools Management'}
+                {activePage === 'statistics' && 'Statistics'}
+                {activePage === 'settings' && 'Settings'}
+              </h1>
+
+              <p>Welcome back, {profile.email}</p>
+            </div>
+
+            <div className="admin-profile">
+              <div className="avatar">A</div>
+              <div>
+                <strong>Administrator</strong>
+                <span>Admin</span>
+              </div>
+            </div>
+          </header>
+
+          {activePage === 'dashboard' && (
+            <>
+              <div className="stats-grid">
+                <div className="stat-card blue">
+                  <div className="stat-icon">👥</div>
                   <div>
-                    <h3>User Management</h3>
-                    <p>Total users: {users.length}</p>
+                    <span>Total Users</span>
+                    <strong>{totalUsers}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card purple">
+                  <div className="stat-icon">👑</div>
+                  <div>
+                    <span>Total Admins</span>
+                    <strong>{totalAdmins}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card green">
+                  <div className="stat-icon">👤</div>
+                  <div>
+                    <span>Normal Users</span>
+                    <strong>{normalUsers}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card orange">
+                  <div className="stat-icon">🛠️</div>
+                  <div>
+                    <span>Total Tools</span>
+                    <strong>0</strong>
+                  </div>
+                </div>
+              </div>
+
+              <section className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Recent Users</h2>
+                    <p>Latest registered users</p>
                   </div>
 
                   <button
@@ -247,28 +390,25 @@ function App() {
                     onClick={loadUsers}
                     disabled={usersLoading}
                   >
-                    {usersLoading ? 'Loading...' : 'Refresh'}
+                    {usersLoading ? 'Loading...' : '↻ Refresh'}
                   </button>
                 </div>
 
-                {usersLoading ? (
-                  <p>Loading users...</p>
-                ) : users.length === 0 ? (
-                  <p>No users found.</p>
-                ) : (
-                  <div className="users-table-wrapper">
+                <div className="users-table-wrapper">
+                  {users.length === 0 ? (
+                    <p>No users found.</p>
+                  ) : (
                     <table className="users-table">
                       <thead>
                         <tr>
                           <th>Email</th>
                           <th>Role</th>
                           <th>Created</th>
-                          <th>Action</th>
                         </tr>
                       </thead>
 
                       <tbody>
-                        {users.map((user) => (
+                        {users.slice(0, 5).map((user) => (
                           <tr key={user.id}>
                             <td>{user.email || 'No email'}</td>
 
@@ -289,55 +429,154 @@ function App() {
                                 user.created_at
                               ).toLocaleDateString()}
                             </td>
-
-                            <td>
-                              {user.id === profile.id ? (
-                                <span className="current-user">
-                                  Current Admin
-                                </span>
-                              ) : (
-                                <button
-                                  className="role-button"
-                                  onClick={() =>
-                                    changeRole(
-                                      user.id,
-                                      user.role === 'admin'
-                                        ? 'user'
-                                        : 'admin'
-                                    )
-                                  }
-                                >
-                                  {user.role === 'admin'
-                                    ? 'Make User'
-                                    : 'Make Admin'}
-                                </button>
-                              )}
-                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                )}
+                  )}
+                </div>
+              </section>
+            </>
+          )}
+
+          {activePage === 'users' && (
+            <section className="panel-card">
+              <div className="panel-header">
+                <div>
+                  <h2>All Users</h2>
+                  <p>Manage user accounts and permissions</p>
+                </div>
+
+                <button
+                  className="refresh-button"
+                  onClick={loadUsers}
+                  disabled={usersLoading}
+                >
+                  {usersLoading ? 'Loading...' : '↻ Refresh'}
+                </button>
+              </div>
+
+              <div className="users-table-wrapper">
+                <table className="users-table">
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {users.map((user) => (
+                      <tr key={user.id}>
+                        <td>{user.email || 'No email'}</td>
+
+                        <td>
+                          <span
+                            className={
+                              user.role === 'admin'
+                                ? 'role admin-role'
+                                : 'role user-role'
+                            }
+                          >
+                            {user.role}
+                          </span>
+                        </td>
+
+                        <td>
+                          {new Date(
+                            user.created_at
+                          ).toLocaleDateString()}
+                        </td>
+
+                        <td>
+                          {user.id === profile.id ? (
+                            <span className="current-user">
+                              Current Admin
+                            </span>
+                          ) : (
+                            <button
+                              className="role-button"
+                              onClick={() =>
+                                changeRole(
+                                  user.id,
+                                  user.role === 'admin'
+                                    ? 'user'
+                                    : 'admin'
+                                )
+                              }
+                            >
+                              {user.role === 'admin'
+                                ? 'Make User'
+                                : 'Make Admin'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
               {message && (
                 <p className="message">{message}</p>
               )}
             </section>
-          ) : (
-            <section>
-              <h2>Welcome, User 👋</h2>
-              <p>You have successfully logged in.</p>
+          )}
 
-              <div className="dashboard-box">
-                <h3>Your Tools</h3>
-                <p>Your available tools will appear here.</p>
+          {activePage === 'tools' && (
+            <section className="panel-card empty-panel">
+              <div className="empty-icon">🛠️</div>
+              <h2>Tools Management</h2>
+              <p>
+                Tool management will be added in the next step.
+              </p>
+            </section>
+          )}
+
+          {activePage === 'statistics' && (
+            <section className="panel-card">
+              <h2>Statistics</h2>
+              <p>Your website statistics will appear here.</p>
+
+              <div className="stats-grid">
+                <div className="stat-card blue">
+                  <div className="stat-icon">👥</div>
+                  <div>
+                    <span>Users</span>
+                    <strong>{totalUsers}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card purple">
+                  <div className="stat-icon">👑</div>
+                  <div>
+                    <span>Admins</span>
+                    <strong>{totalAdmins}</strong>
+                  </div>
+                </div>
+
+                <div className="stat-card green">
+                  <div className="stat-icon">👤</div>
+                  <div>
+                    <span>Normal Users</span>
+                    <strong>{normalUsers}</strong>
+                  </div>
+                </div>
               </div>
             </section>
           )}
-        </div>
-      </main>
+
+          {activePage === 'settings' && (
+            <section className="panel-card empty-panel">
+              <div className="empty-icon">⚙️</div>
+              <h2>Settings</h2>
+              <p>Admin settings will be added here.</p>
+            </section>
+          )}
+        </main>
+      </div>
     )
   }
 
