@@ -1,662 +1,831 @@
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  margin: 0;
-  min-height: 100%;
-}
-
-body {
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-/* =========================
-   LOGIN
-========================= */
-
-.auth-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(circle at top left, #2563eb 0, transparent 35%),
-    linear-gradient(135deg, #0f172a, #1e3a8a);
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 430px;
-  padding: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
-  color: #fff;
-}
-
-.auth-card h1 {
-  margin: 0 0 8px;
-  text-align: center;
-  font-size: 30px;
-}
-
-.subtitle {
-  margin: 0 0 25px;
-  text-align: center;
-  color: #cbd5e1;
-}
-
-.mode-buttons {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 18px;
-}
-
-.mode-buttons button {
-  flex: 1;
-  padding: 12px;
-  border: 0;
-  border-radius: 10px;
-  background: #334155;
-  color: #fff;
-}
-
-.mode-buttons button.active {
-  background: #2563eb;
-}
-
-.signup-toggle {
-  width: 100%;
-  margin-bottom: 18px;
-  border: 0;
-  background: transparent;
-  color: #93c5fd;
-}
-
-.auth-card label {
-  display: block;
-  margin: 14px 0 7px;
-  color: #e2e8f0;
-}
-
-.auth-card input {
-  width: 100%;
-  padding: 13px;
-  border: 1px solid #475569;
-  border-radius: 10px;
-  outline: none;
-  background: #0f172a;
-  color: #fff;
-}
-
-.auth-card input:focus {
-  border-color: #60a5fa;
-}
-
-.submit-button {
-  width: 100%;
-  margin-top: 22px;
-  padding: 13px;
-  border: 0;
-  border-radius: 10px;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 700;
-}
-
-.submit-button:hover {
-  background: #1d4ed8;
-}
-
-.submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.message {
-  margin: 18px 0 0;
-  color: #fbbf24;
-  text-align: center;
-}
-
-/* =========================
-   ADMIN LAYOUT
-========================= */
-
-.admin-layout {
-  min-height: 100vh;
-  display: flex;
-  background: #f1f5f9;
-}
-
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 255px;
-  display: flex;
-  flex-direction: column;
-  padding: 24px 16px;
-  background: #0f172a;
-  color: #fff;
-  box-shadow: 8px 0 25px rgba(15, 23, 42, 0.08);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 5px 10px 28px;
-}
-
-.brand-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #2563eb, #7c3aed);
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.brand h2 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.brand span {
-  display: block;
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.sidebar nav {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.nav-item {
-  width: 100%;
-  padding: 13px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #cbd5e1;
-  text-align: left;
-  transition: 0.2s ease;
-}
-
-.nav-item:hover {
-  background: #1e293b;
-  color: #fff;
-}
-
-.nav-item.active {
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
-}
-
-.logout-button {
-  width: 100%;
-  margin-top: auto;
-  padding: 12px 14px;
-  border: 0;
-  border-radius: 10px;
-  background: #7f1d1d;
-  color: #fff;
-}
-
-.logout-button:hover {
-  background: #991b1b;
-}
-
-/* =========================
-   MAIN
-========================= */
-
-.admin-main {
-  width: calc(100% - 255px);
-  min-height: 100vh;
-  margin-left: 255px;
-  padding: 30px;
-}
-
-.admin-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.admin-header h1 {
-  margin: 0;
-  font-size: 30px;
-  color: #0f172a;
-}
-
-.admin-header p {
-  margin: 7px 0 0;
-  color: #64748b;
-}
-
-.admin-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
-}
-
-.avatar {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 700;
-}
-
-.admin-profile strong,
-.admin-profile span {
-  display: block;
-}
-
-.admin-profile strong {
-  font-size: 13px;
-}
-
-.admin-profile span {
-  margin-top: 2px;
-  color: #64748b;
-  font-size: 12px;
-}
-
-/* =========================
-   STAT CARDS
-========================= */
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-  margin-bottom: 25px;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 22px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
-}
-
-.stat-icon {
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 13px;
-  font-size: 22px;
-}
-
-.stat-card span {
-  display: block;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.stat-card strong {
-  display: block;
-  margin-top: 5px;
-  color: #0f172a;
-  font-size: 26px;
-}
-
-.stat-card.blue .stat-icon {
-  background: #dbeafe;
-}
-
-.stat-card.purple .stat-icon {
-  background: #ede9fe;
-}
-
-.stat-card.green .stat-icon {
-  background: #dcfce7;
-}
-
-.stat-card.orange .stat-icon {
-  background: #ffedd5;
-}
-
-/* =========================
-   PANELS
-========================= */
-
-.panel-card {
-  padding: 25px;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.panel-header h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 20px;
-}
-
-.panel-header p {
-  margin: 5px 0 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.refresh-button {
-  padding: 9px 14px;
-  border: 0;
-  border-radius: 9px;
-  background: #2563eb;
-  color: #fff;
-}
-
-.refresh-button:hover {
-  background: #1d4ed8;
-}
-
-.refresh-button:disabled {
-  opacity: 0.6;
-}
-
-/* =========================
-   TABLE
-========================= */
-
-.users-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 650px;
-}
-
-.users-table th {
-  padding: 13px 12px;
-  border-bottom: 1px solid #e2e8f0;
-  color: #64748b;
-  font-size: 12px;
-  text-align: left;
-  text-transform: uppercase;
-}
+import { useEffect, useState } from 'react'
+import './App.css'
+import { supabase } from './supabase'
+
+type Profile = {
+  id: string
+  email: string | null
+  role: 'user' | 'admin'
+  created_at: string
+}
+
+function App() {
+  const [session, setSession] = useState<any>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [users, setUsers] = useState<Profile[]>([])
+
+  const [loading, setLoading] = useState(true)
+  const [usersLoading, setUsersLoading] = useState(false)
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+
+  const [isSignup, setIsSignup] = useState(false)
+  const [isAdminLogin, setIsAdminLogin] = useState(false)
+
+  const [activePage, setActivePage] = useState('dashboard')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    let mounted = true
+
+    async function start() {
+      const { data, error } = await supabase.auth.getSession()
+
+      if (!mounted) return
+
+      if (error) {
+        setMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      setSession(data.session)
+
+      if (data.session) {
+        await loadProfile(data.session.user.id)
+      } else {
+        setLoading(false)
+      }
+    }
+
+    start()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (!mounted) return
+
+      setSession(currentSession)
+
+      if (event === 'SIGNED_OUT' || !currentSession) {
+        setProfile(null)
+        setUsers([])
+        setLoading(false)
+        return
+      }
+
+      setTimeout(() => {
+        if (mounted && currentSession) {
+          loadProfile(currentSession.user.id)
+        }
+      }, 0)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  async function loadProfile(userId: string) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, role, created_at')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (error) {
+      setMessage(error.message)
+      setProfile(null)
+      setLoading(false)
+      return
+    }
+
+    if (!data) {
+      setMessage('Profile not found. Please contact administrator.')
+      setProfile(null)
+      setLoading(false)
+      return
+    }
+
+    setProfile(data as Profile)
 
-.users-table td {
-  padding: 16px 12px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #334155;
-  font-size: 14px;
-}
-
-.users-table tbody tr:hover {
-  background: #f8fafc;
-}
-
-.role {
-  display: inline-block;
-  padding: 5px 9px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.admin-role {
-  background: #ede9fe;
-  color: #6d28d9;
-}
-
-.user-role {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.role-button {
-  padding: 7px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: #e0e7ff;
-  color: #3730a3;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.role-button:hover {
-  background: #c7d2fe;
-}
-
-.current-user {
-  color: #64748b;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-/* =========================
-   EMPTY PAGES
-========================= */
-
-.empty-panel {
-  min-height: 350px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.empty-icon {
-  width: 70px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 15px;
-  border-radius: 20px;
-  background: #eff6ff;
-  font-size: 32px;
-}
-
-.empty-panel h2 {
-  margin: 0;
-}
-
-.empty-panel p {
-  color: #64748b;
-}
-
-/* =========================
-   USER DASHBOARD
-========================= */
-
-.user-dashboard {
-  min-height: 100vh;
-  padding: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(circle at top left, #2563eb 0, transparent 35%),
-    linear-gradient(135deg, #0f172a, #1e3a8a);
-}
-
-.user-card {
-  width: 100%;
-  max-width: 900px;
-  padding: 30px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-  backdrop-filter: blur(15px);
-}
-
-.user-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  margin-bottom: 30px;
-}
-
-.user-topbar h1 {
-  margin: 0;
-}
-
-.user-topbar p {
-  margin: 5px 0 0;
-  color: #cbd5e1;
-}
-
-.user-topbar button {
-  padding: 10px 18px;
-  border: 0;
-  border-radius: 8px;
-  background: #dc2626;
-  color: #fff;
-}
-
-.user-tools-box {
-  margin-top: 25px;
-  padding: 25px;
-  border-radius: 15px;
-  background: rgba(15, 23, 42, 0.6);
-}
-
-/* =========================
-   MOBILE
-========================= */
-
-@media (max-width: 1000px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
+    if (data.role === 'admin') {
+      await loadUsers()
+    }
 
-@media (max-width: 760px) {
-  .sidebar {
-    position: static;
-    width: 100%;
-    min-height: auto;
+    setLoading(false)
   }
 
-  .admin-layout {
-    display: block;
+  async function loadUsers() {
+    setUsersLoading(true)
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, role, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setMessage(error.message)
+      setUsers([])
+    } else {
+      setUsers((data || []) as Profile[])
+    }
+
+    setUsersLoading(false)
   }
 
-  .admin-main {
-    width: 100%;
-    margin-left: 0;
-    padding: 20px;
+  async function changeRole(
+    userId: string,
+    newRole: 'user' | 'admin'
+  ) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role: newRole })
+      .eq('id', userId)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    setMessage('Role updated successfully.')
+    await loadUsers()
   }
 
-  .sidebar nav {
-    flex-direction: row;
-    flex-wrap: wrap;
+  async function handleAuth(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+
+    setMessage('')
+    setLoading(true)
+
+    if (isSignup) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (error) {
+        setMessage(error.message)
+        setLoading(false)
+        return
+      }
+
+      if (data.session) {
+        await loadProfile(data.session.user.id)
+      } else {
+        setMessage(
+          'Account created. Please verify your email, then login.'
+        )
+        setLoading(false)
+      }
+
+      return
+    }
+
+    const { data, error } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+    if (error) {
+      setMessage(error.message)
+      setLoading(false)
+      return
+    }
+
+    if (!data.session) {
+      setMessage('Login successful, but no session was created.')
+      setLoading(false)
+      return
+    }
+
+    setSession(data.session)
+    await loadProfile(data.session.user.id)
   }
 
-  .nav-item {
-    width: auto;
+  async function logout() {
+    await supabase.auth.signOut()
+
+    setSession(null)
+    setProfile(null)
+    setUsers([])
+
+    setEmail('')
+    setPassword('')
+    setMessage('')
+    setActivePage('dashboard')
   }
 
-  .logout-button {
-    margin-top: 20px;
+  const totalUsers = users.length
+
+  const totalAdmins = users.filter(
+    (user) => user.role === 'admin'
+  ).length
+
+  const normalUsers = users.filter(
+    (user) => user.role === 'user'
+  ).length
+
+  if (loading) {
+    return (
+      <main className="auth-container">
+        <div className="auth-card">
+          <h2>Loading...</h2>
+          <p className="subtitle">Please wait</p>
+        </div>
+      </main>
+    )
   }
 
-  .admin-header {
-    align-items: flex-start;
-    flex-direction: column;
+  if (session && profile) {
+    if (profile.role !== 'admin') {
+      return (
+        <main className="user-dashboard">
+          <div className="user-card">
+            <div className="user-topbar">
+              <div>
+                <h1>ToolMaster Pro</h1>
+                <p>{profile.email}</p>
+              </div>
+
+              <button onClick={logout}>
+                Logout
+              </button>
+            </div>
+
+            <h2>Welcome 👋</h2>
+
+            <p>
+              You have successfully logged in.
+            </p>
+
+            <div className="user-tools-box">
+              <h3>Your Tools</h3>
+
+              <p>
+                Your available tools will appear here.
+              </p>
+            </div>
+          </div>
+        </main>
+      )
+    }
+
+    return (
+      <div className="admin-layout">
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-icon">
+              TM
+            </div>
+
+            <div>
+              <h2>ToolMaster</h2>
+              <span>Admin Panel</span>
+            </div>
+          </div>
+
+          <nav>
+            <button
+              className={
+                activePage === 'dashboard'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActivePage('dashboard')
+              }
+            >
+              🏠 Dashboard
+            </button>
+
+            <button
+              className={
+                activePage === 'users'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActivePage('users')
+              }
+            >
+              👥 Users
+            </button>
+
+            <button
+              className={
+                activePage === 'tools'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActivePage('tools')
+              }
+            >
+              🛠️ Tools
+            </button>
+
+            <button
+              className={
+                activePage === 'statistics'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActivePage('statistics')
+              }
+            >
+              📊 Statistics
+            </button>
+
+            <button
+              className={
+                activePage === 'settings'
+                  ? 'nav-item active'
+                  : 'nav-item'
+              }
+              onClick={() =>
+                setActivePage('settings')
+              }
+            >
+              ⚙️ Settings
+            </button>
+          </nav>
+
+          <button
+            className="logout-button"
+            onClick={logout}
+          >
+            🚪 Logout
+          </button>
+        </aside>
+
+        <main className="admin-main">
+          <header className="admin-header">
+            <div>
+              <h1>
+                {activePage === 'dashboard' &&
+                  'Dashboard'}
+
+                {activePage === 'users' &&
+                  'User Management'}
+
+                {activePage === 'tools' &&
+                  'Tools Management'}
+
+                {activePage === 'statistics' &&
+                  'Statistics'}
+
+                {activePage === 'settings' &&
+                  'Settings'}
+              </h1>
+
+              <p>
+                Welcome back, {profile.email}
+              </p>
+            </div>
+
+            <div className="admin-profile">
+              <div className="avatar">
+                A
+              </div>
+
+              <div>
+                <strong>
+                  Administrator
+                </strong>
+
+                <span>Admin</span>
+              </div>
+            </div>
+          </header>
+
+          {activePage === 'dashboard' && (
+            <>
+              <div className="stats-grid">
+                <div className="stat-card blue">
+                  <div className="stat-icon">
+                    👥
+                  </div>
+
+                  <div>
+                    <span>Total Users</span>
+                    <strong>
+                      {totalUsers}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card purple">
+                  <div className="stat-icon">
+                    👑
+                  </div>
+
+                  <div>
+                    <span>Total Admins</span>
+                    <strong>
+                      {totalAdmins}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card green">
+                  <div className="stat-icon">
+                    👤
+                  </div>
+
+                  <div>
+                    <span>Normal Users</span>
+                    <strong>
+                      {normalUsers}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card orange">
+                  <div className="stat-icon">
+                    🛠️
+                  </div>
+
+                  <div>
+                    <span>Total Tools</span>
+                    <strong>0</strong>
+                  </div>
+                </div>
+              </div>
+
+              <section className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Recent Users</h2>
+
+                    <p>
+                      Latest registered users
+                    </p>
+                  </div>
+
+                  <button
+                    className="refresh-button"
+                    onClick={loadUsers}
+                    disabled={usersLoading}
+                  >
+                    {usersLoading
+                      ? 'Loading...'
+                      : '↻ Refresh'}
+                  </button>
+                </div>
+
+                <div className="users-table-wrapper">
+                  {users.length === 0 ? (
+                    <p>
+                      No users found.
+                    </p>
+                  ) : (
+                    <table className="users-table">
+                      <thead>
+                        <tr>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Created</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {users
+                          .slice(0, 5)
+                          .map((user) => (
+                            <tr key={user.id}>
+                              <td>
+                                {user.email ||
+                                  'No email'}
+                              </td>
+
+                              <td>
+                                <span
+                                  className={
+                                    user.role ===
+                                    'admin'
+                                      ? 'role admin-role'
+                                      : 'role user-role'
+                                  }
+                                >
+                                  {user.role}
+                                </span>
+                              </td>
+
+                              <td>
+                                {new Date(
+                                  user.created_at
+                                ).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </section>
+            </>
+          )}
+
+          {activePage === 'users' && (
+            <section className="panel-card">
+              <div className="panel-header">
+                <div>
+                  <h2>All Users</h2>
+
+                  <p>
+                    Manage user accounts and permissions
+                  </p>
+                </div>
+
+                <button
+                  className="refresh-button"
+                  onClick={loadUsers}
+                  disabled={usersLoading}
+                >
+                  {usersLoading
+                    ? 'Loading...'
+                    : '↻ Refresh'}
+                </button>
+              </div>
+
+              <div className="users-table-wrapper">
+                {users.length === 0 ? (
+                  <p>No users found.</p>
+                ) : (
+                  <table className="users-table">
+                    <thead>
+                      <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id}>
+                          <td>
+                            {user.email ||
+                              'No email'}
+                          </td>
+
+                          <td>
+                            <span
+                              className={
+                                user.role === 'admin'
+                                  ? 'role admin-role'
+                                  : 'role user-role'
+                              }
+                            >
+                              {user.role}
+                            </span>
+                          </td>
+
+                          <td>
+                            {new Date(
+                              user.created_at
+                            ).toLocaleDateString()}
+                          </td>
+
+                          <td>
+                            {user.id === profile.id ? (
+                              <span className="current-user">
+                                Current Admin
+                              </span>
+                            ) : (
+                              <button
+                                className="role-button"
+                                onClick={() =>
+                                  changeRole(
+                                    user.id,
+                                    user.role ===
+                                      'admin'
+                                      ? 'user'
+                                      : 'admin'
+                                  )
+                                }
+                              >
+                                {user.role ===
+                                'admin'
+                                  ? 'Make User'
+                                  : 'Make Admin'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {message && (
+                <p className="message">
+                  {message}
+                </p>
+              )}
+            </section>
+          )}
+
+          {activePage === 'tools' && (
+            <section className="panel-card empty-panel">
+              <div className="empty-icon">
+                🛠️
+              </div>
+
+              <h2>
+                Tools Management
+              </h2>
+
+              <p>
+                Tool management will be added
+                in the next step.
+              </p>
+            </section>
+          )}
+
+          {activePage === 'statistics' && (
+            <section className="panel-card">
+              <h2>Statistics</h2>
+
+              <p>
+                Your website statistics will
+                appear here.
+              </p>
+
+              <div className="stats-grid">
+                <div className="stat-card blue">
+                  <div className="stat-icon">
+                    👥
+                  </div>
+
+                  <div>
+                    <span>Users</span>
+
+                    <strong>
+                      {totalUsers}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card purple">
+                  <div className="stat-icon">
+                    👑
+                  </div>
+
+                  <div>
+                    <span>Admins</span>
+
+                    <strong>
+                      {totalAdmins}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card green">
+                  <div className="stat-icon">
+                    👤
+                  </div>
+
+                  <div>
+                    <span>Normal Users</span>
+
+                    <strong>
+                      {normalUsers}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activePage === 'settings' && (
+            <section className="panel-card empty-panel">
+              <div className="empty-icon">
+                ⚙️
+              </div>
+
+              <h2>Settings</h2>
+
+              <p>
+                Admin settings will be added here.
+              </p>
+            </section>
+          )}
+        </main>
+      </div>
+    )
   }
+
+  return (
+    <main className="auth-container">
+      <div className="auth-card">
+        <h1>ToolMaster Pro</h1>
+
+        <p className="subtitle">
+          {isAdminLogin
+            ? 'Admin Login'
+            : isSignup
+              ? 'Create Account'
+              : 'User Login'}
+        </p>
+
+        <div className="mode-buttons">
+          <button
+            type="button"
+            className={
+              !isAdminLogin ? 'active' : ''
+            }
+            onClick={() => {
+              setIsAdminLogin(false)
+              setIsSignup(false)
+              setMessage('')
+            }}
+          >
+            User Login
+          </button>
+
+          <button
+            type="button"
+            className={
+              isAdminLogin ? 'active' : ''
+            }
+            onClick={() => {
+              setIsAdminLogin(true)
+              setIsSignup(false)
+              setMessage('')
+            }}
+          >
+            Admin Login
+          </button>
+        </div>
+
+        {!isAdminLogin && (
+          <button
+            type="button"
+            className="signup-toggle"
+            onClick={() => {
+              setIsSignup(!isSignup)
+              setMessage('')
+            }}
+          >
+            {isSignup
+              ? 'Already have an account? Login'
+              : 'Create new account'}
+          </button>
+        )}
+
+        <form onSubmit={handleAuth}>
+          <label htmlFor="email">
+            Email
+          </label>
+
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter email"
+            value={email}
+            onChange={(e) =>
+              setEmail(e.target.value)
+            }
+            required
+          />
+
+          <label htmlFor="password">
+            Password
+          </label>
+
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter password"
+            value={password}
+            onChange={(e) =>
+              setPassword(e.target.value)
+            }
+            minLength={6}
+            required
+          />
+
+          <button
+            type="submit"
+            className="submit-button"
+            disabled={loading}
+          >
+            {loading
+              ? 'Please wait...'
+              : isSignup
+                ? 'Create Account'
+                : isAdminLogin
+                  ? 'Admin Login'
+                  : 'Login'}
+          </button>
+        </form>
+
+        {message && (
+          <p className="message">
+            {message}
+          </p>
+        )}
+      </div>
+    </main>
+  )
 }
 
-@media (max-width: 600px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .admin-main {
-    padding: 15px;
-  }
-
-  .panel-card {
-    padding: 18px;
-  }
-
-  .panel-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-header h1 {
-    font-size: 24px;
-  }
-
-  .user-dashboard {
-    padding: 15px;
-  }
-
-  .user-card {
-    padding: 20px;
-  }
-
-  .user-topbar {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
+export default App
