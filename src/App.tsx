@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+ import { FormEvent, useEffect, useState } from 'react'
 import './App.css'
 import { supabase } from './supabase'
 
@@ -9,13 +9,26 @@ type Profile = {
   created_at: string
 }
 
+type Tool = {
+  id: string
+  name: string
+  description: string | null
+  icon: string | null
+  url: string | null
+  is_active: boolean
+  created_at: string
+}
+
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+
   const [users, setUsers] = useState<Profile[]>([])
+  const [tools, setTools] = useState<Tool[]>([])
 
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
+  const [toolsLoading, setToolsLoading] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,6 +38,17 @@ function App() {
 
   const [activePage, setActivePage] = useState('dashboard')
   const [message, setMessage] = useState('')
+
+  const [showToolForm, setShowToolForm] = useState(false)
+  const [editingTool, setEditingTool] = useState<Tool | null>(null)
+
+  const [toolName, setToolName] = useState('')
+  const [toolDescription, setToolDescription] = useState('')
+  const [toolIcon, setToolIcon] = useState('🛠️')
+  const [toolUrl, setToolUrl] = useState('')
+  const [toolActive, setToolActive] = useState(true)
+
+  const [toolSearch, setToolSearch] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -61,6 +85,7 @@ function App() {
       if (event === 'SIGNED_OUT' || !currentSession) {
         setProfile(null)
         setUsers([])
+        setTools([])
         setLoading(false)
         return
       }
@@ -102,7 +127,10 @@ function App() {
     setProfile(data as Profile)
 
     if (data.role === 'admin') {
-      await loadUsers()
+      await Promise.all([
+        loadUsers(),
+        loadTools(),
+      ])
     }
 
     setLoading(false)
@@ -126,6 +154,26 @@ function App() {
     setUsersLoading(false)
   }
 
+  async function loadTools() {
+    setToolsLoading(true)
+
+    const { data, error } = await supabase
+      .from('tools')
+      .select(
+        'id, name, description, icon, url, is_active, created_at'
+      )
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setMessage(error.message)
+      setTools([])
+    } else {
+      setTools((data || []) as Tool[])
+    }
+
+    setToolsLoading(false)
+  }
+
   async function changeRole(
     userId: string,
     newRole: 'user' | 'admin'
@@ -144,7 +192,140 @@ function App() {
     await loadUsers()
   }
 
-  async function handleAuth(e: React.FormEvent<HTMLFormElement>) {
+  function resetToolForm() {
+    setToolName('')
+    setToolDescription('')
+    setToolIcon('🛠️')
+    setToolUrl('')
+    setToolActive(true)
+    setEditingTool(null)
+    setShowToolForm(false)
+  }
+
+  function openAddTool() {
+    setEditingTool(null)
+    setToolName('')
+    setToolDescription('')
+    setToolIcon('🛠️')
+    setToolUrl('')
+    setToolActive(true)
+    setMessage('')
+    setShowToolForm(true)
+  }
+
+  function openEditTool(tool: Tool) {
+    setEditingTool(tool)
+    setToolName(tool.name)
+    setToolDescription(tool.description || '')
+    setToolIcon(tool.icon || '🛠️')
+    setToolUrl(tool.url || '')
+    setToolActive(tool.is_active)
+    setMessage('')
+    setShowToolForm(true)
+  }
+
+  async function saveTool(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+
+    if (!toolName.trim()) {
+      setMessage('Tool name is required.')
+      return
+    }
+
+    setToolsLoading(true)
+    setMessage('')
+
+    const toolData = {
+      name: toolName.trim(),
+      description: toolDescription.trim() || null,
+      icon: toolIcon.trim() || '🛠️',
+      url: toolUrl.trim() || null,
+      is_active: toolActive,
+    }
+
+    if (editingTool) {
+      const { error } = await supabase
+        .from('tools')
+        .update(toolData)
+        .eq('id', editingTool.id)
+
+      if (error) {
+        setMessage(error.message)
+        setToolsLoading(false)
+        return
+      }
+
+      setMessage('Tool updated successfully.')
+    } else {
+      const { error } = await supabase
+        .from('tools')
+        .insert(toolData)
+
+      if (error) {
+        setMessage(error.message)
+        setToolsLoading(false)
+        return
+      }
+
+      setMessage('Tool added successfully.')
+    }
+
+    resetToolForm()
+    await loadTools()
+  }
+
+  async function deleteTool(toolId: string) {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this tool?'
+    )
+
+    if (!confirmed) return
+
+    setToolsLoading(true)
+    setMessage('')
+
+    const { error } = await supabase
+      .from('tools')
+      .delete()
+      .eq('id', toolId)
+
+    if (error) {
+      setMessage(error.message)
+      setToolsLoading(false)
+      return
+    }
+
+    setMessage('Tool deleted successfully.')
+    await loadTools()
+  }
+
+  async function toggleTool(tool: Tool) {
+    setToolsLoading(true)
+    setMessage('')
+
+    const { error } = await supabase
+      .from('tools')
+      .update({
+        is_active: !tool.is_active,
+      })
+      .eq('id', tool.id)
+
+    if (error) {
+      setMessage(error.message)
+      setToolsLoading(false)
+      return
+    }
+
+    setMessage(
+      tool.is_active
+        ? 'Tool disabled successfully.'
+        : 'Tool enabled successfully.'
+    )
+
+    await loadTools()
+  }
+
+  async function handleAuth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     setMessage('')
@@ -202,6 +383,7 @@ function App() {
     setSession(null)
     setProfile(null)
     setUsers([])
+    setTools([])
 
     setEmail('')
     setPassword('')
@@ -219,6 +401,23 @@ function App() {
     (user) => user.role === 'user'
   ).length
 
+  const activeTools = tools.filter(
+    (tool) => tool.is_active
+  ).length
+
+  const filteredTools = tools.filter((tool) => {
+    const search = toolSearch.toLowerCase().trim()
+
+    if (!search) return true
+
+    return (
+      tool.name.toLowerCase().includes(search) ||
+      (tool.description || '')
+        .toLowerCase()
+        .includes(search)
+    )
+  })
+
   if (loading) {
     return (
       <main className="auth-container">
@@ -232,6 +431,10 @@ function App() {
 
   if (session && profile) {
     if (profile.role !== 'admin') {
+      const userTools = tools.filter(
+        (tool) => tool.is_active
+      )
+
       return (
         <main className="user-dashboard">
           <div className="user-card">
@@ -255,9 +458,47 @@ function App() {
             <div className="user-tools-box">
               <h3>Your Tools</h3>
 
-              <p>
-                Your available tools will appear here.
-              </p>
+              {userTools.length === 0 ? (
+                <p>
+                  No tools are currently available.
+                </p>
+              ) : (
+                <div className="user-tools-grid">
+                  {userTools.map((tool) => (
+                    <a
+                      key={tool.id}
+                      className="user-tool-card"
+                      href={tool.url || '#'}
+                      target={
+                        tool.url ? '_blank' : undefined
+                      }
+                      rel={
+                        tool.url
+                          ? 'noopener noreferrer'
+                          : undefined
+                      }
+                      onClick={(e) => {
+                        if (!tool.url) {
+                          e.preventDefault()
+                        }
+                      }}
+                    >
+                      <div className="user-tool-icon">
+                        {tool.icon || '🛠️'}
+                      </div>
+
+                      <div>
+                        <h4>{tool.name}</h4>
+
+                        <p>
+                          {tool.description ||
+                            'ToolMaster Pro tool'}
+                        </p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -384,10 +625,7 @@ function App() {
               </div>
 
               <div>
-                <strong>
-                  Administrator
-                </strong>
-
+                <strong>Administrator</strong>
                 <span>Admin</span>
               </div>
             </div>
@@ -442,7 +680,9 @@ function App() {
 
                   <div>
                     <span>Total Tools</span>
-                    <strong>0</strong>
+                    <strong>
+                      {tools.length}
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -470,9 +710,7 @@ function App() {
 
                 <div className="users-table-wrapper">
                   {users.length === 0 ? (
-                    <p>
-                      No users found.
-                    </p>
+                    <p>No users found.</p>
                   ) : (
                     <table className="users-table">
                       <thead>
@@ -624,20 +862,312 @@ function App() {
           )}
 
           {activePage === 'tools' && (
-            <section className="panel-card empty-panel">
-              <div className="empty-icon">
-                🛠️
-              </div>
+            <>
+              <section className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Tools Management</h2>
 
-              <h2>
-                Tools Management
-              </h2>
+                    <p>
+                      Add and manage tools available
+                      to your users
+                    </p>
+                  </div>
 
-              <p>
-                Tool management will be added
-                in the next step.
-              </p>
-            </section>
+                  <div className="tools-actions">
+                    <button
+                      className="refresh-button"
+                      onClick={loadTools}
+                      disabled={toolsLoading}
+                    >
+                      {toolsLoading
+                        ? 'Loading...'
+                        : '↻ Refresh'}
+                    </button>
+
+                    <button
+                      className="add-tool-button"
+                      onClick={openAddTool}
+                    >
+                      + Add Tool
+                    </button>
+                  </div>
+                </div>
+
+                <div className="tool-search">
+                  <input
+                    type="text"
+                    placeholder="Search tools..."
+                    value={toolSearch}
+                    onChange={(e) =>
+                      setToolSearch(e.target.value)
+                    }
+                  />
+                </div>
+
+                {showToolForm && (
+                  <form
+                    className="tool-form"
+                    onSubmit={saveTool}
+                  >
+                    <div className="tool-form-header">
+                      <div>
+                        <h3>
+                          {editingTool
+                            ? 'Edit Tool'
+                            : 'Add New Tool'}
+                        </h3>
+
+                        <p>
+                          Enter the tool information
+                          below.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="close-button"
+                        onClick={resetToolForm}
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    <div className="tool-form-grid">
+                      <div>
+                        <label htmlFor="tool-name">
+                          Tool Name
+                        </label>
+
+                        <input
+                          id="tool-name"
+                          type="text"
+                          placeholder="Example: Image Compressor"
+                          value={toolName}
+                          onChange={(e) =>
+                            setToolName(
+                              e.target.value
+                            )
+                          }
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="tool-icon">
+                          Icon
+                        </label>
+
+                        <input
+                          id="tool-icon"
+                          type="text"
+                          placeholder="🛠️"
+                          value={toolIcon}
+                          onChange={(e) =>
+                            setToolIcon(
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="full-width">
+                        <label htmlFor="tool-description">
+                          Description
+                        </label>
+
+                        <textarea
+                          id="tool-description"
+                          placeholder="Describe what this tool does..."
+                          value={toolDescription}
+                          onChange={(e) =>
+                            setToolDescription(
+                              e.target.value
+                            )
+                          }
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="full-width">
+                        <label htmlFor="tool-url">
+                          Tool URL
+                        </label>
+
+                        <input
+                          id="tool-url"
+                          type="url"
+                          placeholder="https://example.com"
+                          value={toolUrl}
+                          onChange={(e) =>
+                            setToolUrl(
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+
+                      <label className="active-toggle">
+                        <input
+                          type="checkbox"
+                          checked={toolActive}
+                          onChange={(e) =>
+                            setToolActive(
+                              e.target.checked
+                            )
+                          }
+                        />
+
+                        <span>
+                          Tool is active
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="tool-form-buttons">
+                      <button
+                        type="button"
+                        className="cancel-button"
+                        onClick={resetToolForm}
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="save-tool-button"
+                        disabled={toolsLoading}
+                      >
+                        {toolsLoading
+                          ? 'Saving...'
+                          : editingTool
+                            ? 'Update Tool'
+                            : 'Save Tool'}
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {message && (
+                  <p className="message tool-message">
+                    {message}
+                  </p>
+                )}
+              </section>
+
+              <section className="panel-card tools-list-panel">
+                <div className="tools-list-header">
+                  <div>
+                    <h2>All Tools</h2>
+
+                    <p>
+                      {activeTools} active /{' '}
+                      {tools.length} total
+                    </p>
+                  </div>
+                </div>
+
+                {filteredTools.length === 0 ? (
+                  <div className="empty-tools">
+                    <div className="empty-icon">
+                      🛠️
+                    </div>
+
+                    <h3>
+                      {tools.length === 0
+                        ? 'No tools yet'
+                        : 'No matching tools'}
+                    </h3>
+
+                    <p>
+                      {tools.length === 0
+                        ? 'Click Add Tool to create your first tool.'
+                        : 'Try a different search.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="tools-grid">
+                    {filteredTools.map((tool) => (
+                      <div
+                        className={
+                          tool.is_active
+                            ? 'tool-admin-card'
+                            : 'tool-admin-card inactive'
+                        }
+                        key={tool.id}
+                      >
+                        <div className="tool-card-top">
+                          <div className="tool-card-icon">
+                            {tool.icon || '🛠️'}
+                          </div>
+
+                          <span
+                            className={
+                              tool.is_active
+                                ? 'tool-status active-status'
+                                : 'tool-status inactive-status'
+                            }
+                          >
+                            {tool.is_active
+                              ? 'Active'
+                              : 'Inactive'}
+                          </span>
+                        </div>
+
+                        <h3>{tool.name}</h3>
+
+                        <p>
+                          {tool.description ||
+                            'No description provided.'}
+                        </p>
+
+                        {tool.url && (
+                          <a
+                            className="tool-url"
+                            href={tool.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Open Tool ↗
+                          </a>
+                        )}
+
+                        <div className="tool-card-actions">
+                          <button
+                            className="edit-tool-button"
+                            onClick={() =>
+                              openEditTool(tool)
+                            }
+                          >
+                            ✏️ Edit
+                          </button>
+
+                          <button
+                            className="toggle-tool-button"
+                            onClick={() =>
+                              toggleTool(tool)
+                            }
+                          >
+                            {tool.is_active
+                              ? 'Disable'
+                              : 'Enable'}
+                          </button>
+
+                          <button
+                            className="delete-tool-button"
+                            onClick={() =>
+                              deleteTool(tool.id)
+                            }
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
           )}
 
           {activePage === 'statistics' && (
@@ -645,8 +1175,8 @@ function App() {
               <h2>Statistics</h2>
 
               <p>
-                Your website statistics will
-                appear here.
+                Overview of your ToolMaster Pro
+                platform.
               </p>
 
               <div className="stats-grid">
@@ -688,6 +1218,20 @@ function App() {
 
                     <strong>
                       {normalUsers}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="stat-card orange">
+                  <div className="stat-icon">
+                    🛠️
+                  </div>
+
+                  <div>
+                    <span>Active Tools</span>
+
+                    <strong>
+                      {activeTools}
                     </strong>
                   </div>
                 </div>
