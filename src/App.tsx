@@ -25,6 +25,8 @@ function App() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [users, setUsers] = useState<Profile[]>([])
   const [tools, setTools] = useState<Tool[]>([])
+  const [tools, setTools] = useState<Tool[]>([])
+const [toolsLoading, setToolsLoading] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
