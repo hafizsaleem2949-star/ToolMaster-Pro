@@ -23,16 +23,9 @@ type Tool = {
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+
   const [users, setUsers] = useState<Profile[]>([])
   const [tools, setTools] = useState<Tool[]>([])
-  const [tools, setTools] = useState<Tool[]>([])
-const [toolsLoading, setToolsLoading] = useState(false)
-  const [toolName, setToolName] = useState('')
-const [toolDescription, setToolDescription] = useState('')
-const [toolUrl, setToolUrl] = useState('')
-const [toolIcon, setToolIcon] = useState('🛠️')
-const [toolActive, setToolActive] = useState(true)
-const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
@@ -85,25 +78,27 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      if (!mounted) return
+    } = supabase.auth.onAuthStateChange(
+      (event, currentSession) => {
+        if (!mounted) return
 
-      setSession(currentSession)
+        setSession(currentSession)
 
-      if (event === 'SIGNED_OUT' || !currentSession) {
-        setProfile(null)
-        setUsers([])
-        setTools([])
-        setLoading(false)
-        return
-      }
-
-      setTimeout(() => {
-        if (mounted && currentSession) {
-          loadProfile(currentSession.user.id)
+        if (event === 'SIGNED_OUT' || !currentSession) {
+          setProfile(null)
+          setUsers([])
+          setTools([])
+          setLoading(false)
+          return
         }
-      }, 0)
-    })
+
+        setTimeout(() => {
+          if (mounted && currentSession) {
+            loadProfile(currentSession.user.id)
+          }
+        }, 0)
+      }
+    )
 
     return () => {
       mounted = false
@@ -126,7 +121,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
     }
 
     if (!data) {
-      setMessage('Profile not found. Please contact administrator.')
+      setMessage(
+        'Profile not found. Please contact administrator.'
+      )
       setProfile(null)
       setLoading(false)
       return
@@ -134,37 +131,16 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
     setProfile(data as Profile)
 
-   if (data.role === 'admin') {
-  await loadUsers()
-  await loadTools()
-}
-      await loadTools()
-    } else {
-      await loadTools()
+    await loadTools()
+
+    if (data.role === 'admin') {
+      await loadUsers()
     }
 
     setLoading(false)
   }
 
- async function loadTools() {
-  setToolsLoading(true)
-
-  const { data, error } = await supabase
-    .from('tools')
-    .select(
-      'id, name, description, url, icon, is_active, created_at'
-    )
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    setMessage(error.message)
-    setTools([])
-  } else {
-    setTools((data || []) as Tool[])
-  }
-
-  setToolsLoading(false)
-}
+  async function loadUsers() {
     setUsersLoading(true)
 
     const { data, error } = await supabase
@@ -187,7 +163,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
     const { data, error } = await supabase
       .from('tools')
-      .select('id, name, description, url, icon, is_active, created_at')
+      .select(
+        'id, name, description, url, icon, is_active, created_at'
+      )
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -303,7 +281,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
   async function toggleTool(tool: Tool) {
     const { error } = await supabase
       .from('tools')
-      .update({ is_active: !tool.is_active })
+      .update({
+        is_active: !tool.is_active,
+      })
       .eq('id', tool.id)
 
     if (error) {
@@ -341,17 +321,20 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
     await loadTools()
   }
 
-  async function handleAuth(e: FormEvent<HTMLFormElement>) {
+  async function handleAuth(
+    e: FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault()
 
     setMessage('')
     setLoading(true)
 
     if (isSignup) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
+      const { data, error } =
+        await supabase.auth.signUp({
+          email,
+          password,
+        })
 
       if (error) {
         setMessage(error.message)
@@ -384,7 +367,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
     }
 
     if (!data.session) {
-      setMessage('Login successful, but no session was created.')
+      setMessage(
+        'Login successful, but no session was created.'
+      )
       setLoading(false)
       return
     }
@@ -405,6 +390,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
     setPassword('')
     setMessage('')
     setActivePage('dashboard')
+
     closeToolForm()
   }
 
@@ -427,7 +413,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
     return (
       tool.name.toLowerCase().includes(search) ||
-      (tool.description || '').toLowerCase().includes(search)
+      (tool.description || '')
+        .toLowerCase()
+        .includes(search)
     )
   })
 
@@ -436,7 +424,9 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
       <main className="auth-container">
         <div className="auth-card">
           <h2>Loading...</h2>
-          <p className="subtitle">Please wait</p>
+          <p className="subtitle">
+            Please wait
+          </p>
         </div>
       </main>
     )
@@ -491,6 +481,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                       <div>
                         <h4>{tool.name}</h4>
+
                         <p>
                           {tool.description ||
                             'Open this tool'}
@@ -695,7 +686,6 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
                 <div className="panel-header">
                   <div>
                     <h2>Recent Users</h2>
-
                     <p>
                       Latest registered users
                     </p>
@@ -714,9 +704,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                 <div className="users-table-wrapper">
                   {users.length === 0 ? (
-                    <p>
-                      No users found.
-                    </p>
+                    <p>No users found.</p>
                   ) : (
                     <table className="users-table">
                       <thead>
@@ -770,7 +758,6 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
               <div className="panel-header">
                 <div>
                   <h2>All Users</h2>
-
                   <p>
                     Manage user accounts and permissions
                   </p>
@@ -1040,12 +1027,13 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
               <section className="panel-card tools-list-panel">
                 <div className="tools-list-header">
-                  <h2>All Tools</h2>
-
-                  <p>
-                    {tools.length} total tool
-                    {tools.length === 1 ? '' : 's'}
-                  </p>
+                  <div>
+                    <h2>All Tools</h2>
+                    <p>
+                      {tools.length} total tool
+                      {tools.length === 1 ? '' : 's'}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="tool-search">
@@ -1181,10 +1169,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                   <div>
                     <span>Users</span>
-
-                    <strong>
-                      {totalUsers}
-                    </strong>
+                    <strong>{totalUsers}</strong>
                   </div>
                 </div>
 
@@ -1195,10 +1180,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                   <div>
                     <span>Admins</span>
-
-                    <strong>
-                      {totalAdmins}
-                    </strong>
+                    <strong>{totalAdmins}</strong>
                   </div>
                 </div>
 
@@ -1209,10 +1191,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                   <div>
                     <span>Normal Users</span>
-
-                    <strong>
-                      {normalUsers}
-                    </strong>
+                    <strong>{normalUsers}</strong>
                   </div>
                 </div>
 
@@ -1223,10 +1202,7 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
                   <div>
                     <span>Active Tools</span>
-
-                    <strong>
-                      {activeTools}
-                    </strong>
+                    <strong>{activeTools}</strong>
                   </div>
                 </div>
               </div>
