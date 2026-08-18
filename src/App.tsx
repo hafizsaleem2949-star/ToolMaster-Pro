@@ -134,8 +134,10 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
     setProfile(data as Profile)
 
-    if (data.role === 'admin') {
-      await loadUsers()
+   if (data.role === 'admin') {
+  await loadUsers()
+  await loadTools()
+}
       await loadTools()
     } else {
       await loadTools()
@@ -144,7 +146,25 @@ const [editingToolId, setEditingToolId] = useState<string | null>(null)
     setLoading(false)
   }
 
-  async function loadUsers() {
+ async function loadTools() {
+  setToolsLoading(true)
+
+  const { data, error } = await supabase
+    .from('tools')
+    .select(
+      'id, name, description, url, icon, is_active, created_at'
+    )
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    setMessage(error.message)
+    setTools([])
+  } else {
+    setTools((data || []) as Tool[])
+  }
+
+  setToolsLoading(false)
+}
     setUsersLoading(true)
 
     const { data, error } = await supabase
