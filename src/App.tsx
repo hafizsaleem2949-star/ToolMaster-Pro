@@ -14,8 +14,8 @@ type Tool = {
   id: string
   name: string
   description: string | null
+  url: string
   icon: string | null
-  url: string | null
   is_active: boolean
   created_at: string
 }
@@ -23,13 +23,13 @@ type Tool = {
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-
   const [users, setUsers] = useState<Profile[]>([])
   const [tools, setTools] = useState<Tool[]>([])
 
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
   const [toolsLoading, setToolsLoading] = useState(false)
+  const [savingTool, setSavingTool] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -41,15 +41,14 @@ function App() {
   const [message, setMessage] = useState('')
 
   const [showToolForm, setShowToolForm] = useState(false)
-  const [editingTool, setEditingTool] = useState<Tool | null>(null)
+  const [editingToolId, setEditingToolId] = useState<string | null>(null)
+  const [toolSearch, setToolSearch] = useState('')
 
   const [toolName, setToolName] = useState('')
   const [toolDescription, setToolDescription] = useState('')
-  const [toolIcon, setToolIcon] = useState('🛠️')
   const [toolUrl, setToolUrl] = useState('')
+  const [toolIcon, setToolIcon] = useState('🛠️')
   const [toolActive, setToolActive] = useState(true)
-
-  const [toolSearch, setToolSearch] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -128,10 +127,10 @@ function App() {
     setProfile(data as Profile)
 
     if (data.role === 'admin') {
-      await Promise.all([
-        loadUsers(),
-        loadTools(),
-      ])
+      await loadUsers()
+      await loadTools()
+    } else {
+      await loadTools()
     }
 
     setLoading(false)
@@ -160,9 +159,7 @@ function App() {
 
     const { data, error } = await supabase
       .from('tools')
-      .select(
-        'id, name, description, icon, url, is_active, created_at'
-      )
+      .select('id, name, description, url, icon, is_active, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -194,65 +191,64 @@ function App() {
   }
 
   function resetToolForm() {
+    setEditingToolId(null)
     setToolName('')
     setToolDescription('')
-    setToolIcon('🛠️')
     setToolUrl('')
+    setToolIcon('🛠️')
     setToolActive(true)
-    setEditingTool(null)
-    setShowToolForm(false)
   }
 
   function openAddTool() {
-    setEditingTool(null)
-    setToolName('')
-    setToolDescription('')
-    setToolIcon('🛠️')
-    setToolUrl('')
-    setToolActive(true)
-    setMessage('')
+    resetToolForm()
     setShowToolForm(true)
+    setMessage('')
   }
 
   function openEditTool(tool: Tool) {
-    setEditingTool(tool)
+    setEditingToolId(tool.id)
     setToolName(tool.name)
     setToolDescription(tool.description || '')
+    setToolUrl(tool.url)
     setToolIcon(tool.icon || '🛠️')
-    setToolUrl(tool.url || '')
     setToolActive(tool.is_active)
-    setMessage('')
     setShowToolForm(true)
+    setMessage('')
+  }
+
+  function closeToolForm() {
+    resetToolForm()
+    setShowToolForm(false)
   }
 
   async function saveTool(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    if (!toolName.trim()) {
-      setMessage('Tool name is required.')
+    if (!toolName.trim() || !toolUrl.trim()) {
+      setMessage('Tool name and URL are required.')
       return
     }
 
-    setToolsLoading(true)
+    setSavingTool(true)
     setMessage('')
 
     const toolData = {
       name: toolName.trim(),
-      description: toolDescription.trim() || null,
+      description: toolDescription.trim(),
+      url: toolUrl.trim(),
       icon: toolIcon.trim() || '🛠️',
-      url: toolUrl.trim() || null,
       is_active: toolActive,
     }
 
-    if (editingTool) {
+    if (editingToolId) {
       const { error } = await supabase
         .from('tools')
         .update(toolData)
-        .eq('id', editingTool.id)
+        .eq('id', editingToolId)
 
       if (error) {
         setMessage(error.message)
-        setToolsLoading(false)
+        setSavingTool(false)
         return
       }
 
@@ -264,14 +260,35 @@ function App() {
 
       if (error) {
         setMessage(error.message)
-        setToolsLoading(false)
+        setSavingTool(false)
         return
       }
 
       setMessage('Tool added successfully.')
     }
 
-    resetToolForm()
+    closeToolForm()
+    await loadTools()
+    setSavingTool(false)
+  }
+
+  async function toggleTool(tool: Tool) {
+    const { error } = await supabase
+      .from('tools')
+      .update({ is_active: !tool.is_active })
+      .eq('id', tool.id)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    setMessage(
+      tool.is_active
+        ? 'Tool deactivated.'
+        : 'Tool activated.'
+    )
+
     await loadTools()
   }
 
@@ -282,9 +299,6 @@ function App() {
 
     if (!confirmed) return
 
-    setToolsLoading(true)
-    setMessage('')
-
     const { error } = await supabase
       .from('tools')
       .delete()
@@ -292,37 +306,10 @@ function App() {
 
     if (error) {
       setMessage(error.message)
-      setToolsLoading(false)
       return
     }
 
     setMessage('Tool deleted successfully.')
-    await loadTools()
-  }
-
-  async function toggleTool(tool: Tool) {
-    setToolsLoading(true)
-    setMessage('')
-
-    const { error } = await supabase
-      .from('tools')
-      .update({
-        is_active: !tool.is_active,
-      })
-      .eq('id', tool.id)
-
-    if (error) {
-      setMessage(error.message)
-      setToolsLoading(false)
-      return
-    }
-
-    setMessage(
-      tool.is_active
-        ? 'Tool disabled successfully.'
-        : 'Tool enabled successfully.'
-    )
-
     await loadTools()
   }
 
@@ -390,6 +377,7 @@ function App() {
     setPassword('')
     setMessage('')
     setActivePage('dashboard')
+    closeToolForm()
   }
 
   const totalUsers = users.length
@@ -407,15 +395,11 @@ function App() {
   ).length
 
   const filteredTools = tools.filter((tool) => {
-    const search = toolSearch.toLowerCase().trim()
-
-    if (!search) return true
+    const search = toolSearch.toLowerCase()
 
     return (
       tool.name.toLowerCase().includes(search) ||
-      (tool.description || '')
-        .toLowerCase()
-        .includes(search)
+      (tool.description || '').toLowerCase().includes(search)
     )
   })
 
@@ -468,21 +452,10 @@ function App() {
                   {userTools.map((tool) => (
                     <a
                       key={tool.id}
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="user-tool-card"
-                      href={tool.url || '#'}
-                      target={
-                        tool.url ? '_blank' : undefined
-                      }
-                      rel={
-                        tool.url
-                          ? 'noopener noreferrer'
-                          : undefined
-                      }
-                      onClick={(e) => {
-                        if (!tool.url) {
-                          e.preventDefault()
-                        }
-                      }}
                     >
                       <div className="user-tool-icon">
                         {tool.icon || '🛠️'}
@@ -490,10 +463,9 @@ function App() {
 
                       <div>
                         <h4>{tool.name}</h4>
-
                         <p>
                           {tool.description ||
-                            'ToolMaster Pro tool'}
+                            'Open this tool'}
                         </p>
                       </div>
                     </a>
@@ -626,7 +598,10 @@ function App() {
               </div>
 
               <div>
-                <strong>Administrator</strong>
+                <strong>
+                  Administrator
+                </strong>
+
                 <span>Admin</span>
               </div>
             </div>
@@ -680,9 +655,9 @@ function App() {
                   </div>
 
                   <div>
-                    <span>Total Tools</span>
+                    <span>Active Tools</span>
                     <strong>
-                      {tools.length}
+                      {activeTools}
                     </strong>
                   </div>
                 </div>
@@ -711,7 +686,9 @@ function App() {
 
                 <div className="users-table-wrapper">
                   {users.length === 0 ? (
-                    <p>No users found.</p>
+                    <p>
+                      No users found.
+                    </p>
                   ) : (
                     <table className="users-table">
                       <thead>
@@ -870,8 +847,7 @@ function App() {
                     <h2>Tools Management</h2>
 
                     <p>
-                      Add and manage tools available
-                      to your users
+                      Add, edit and manage your website tools
                     </p>
                   </div>
 
@@ -895,17 +871,6 @@ function App() {
                   </div>
                 </div>
 
-                <div className="tool-search">
-                  <input
-                    type="text"
-                    placeholder="Search tools..."
-                    value={toolSearch}
-                    onChange={(e) =>
-                      setToolSearch(e.target.value)
-                    }
-                  />
-                </div>
-
                 {showToolForm && (
                   <form
                     className="tool-form"
@@ -914,21 +879,20 @@ function App() {
                     <div className="tool-form-header">
                       <div>
                         <h3>
-                          {editingTool
+                          {editingToolId
                             ? 'Edit Tool'
                             : 'Add New Tool'}
                         </h3>
 
                         <p>
-                          Enter the tool information
-                          below.
+                          Enter the tool information below.
                         </p>
                       </div>
 
                       <button
                         type="button"
                         className="close-button"
-                        onClick={resetToolForm}
+                        onClick={closeToolForm}
                       >
                         ✕
                       </button>
@@ -936,75 +900,67 @@ function App() {
 
                     <div className="tool-form-grid">
                       <div>
-                        <label htmlFor="tool-name">
+                        <label htmlFor="toolName">
                           Tool Name
                         </label>
 
                         <input
-                          id="tool-name"
-                          type="text"
-                          placeholder="Example: Image Compressor"
+                          id="toolName"
                           value={toolName}
                           onChange={(e) =>
-                            setToolName(
-                              e.target.value
-                            )
+                            setToolName(e.target.value)
                           }
+                          placeholder="Example: Image Compressor"
                           required
                         />
                       </div>
 
                       <div>
-                        <label htmlFor="tool-icon">
+                        <label htmlFor="toolIcon">
                           Icon
                         </label>
 
                         <input
-                          id="tool-icon"
-                          type="text"
-                          placeholder="🛠️"
+                          id="toolIcon"
                           value={toolIcon}
                           onChange={(e) =>
-                            setToolIcon(
-                              e.target.value
-                            )
+                            setToolIcon(e.target.value)
                           }
+                          placeholder="🛠️"
                         />
                       </div>
 
                       <div className="full-width">
-                        <label htmlFor="tool-description">
+                        <label htmlFor="toolUrl">
+                          Tool URL
+                        </label>
+
+                        <input
+                          id="toolUrl"
+                          type="url"
+                          value={toolUrl}
+                          onChange={(e) =>
+                            setToolUrl(e.target.value)
+                          }
+                          placeholder="https://example.com"
+                          required
+                        />
+                      </div>
+
+                      <div className="full-width">
+                        <label htmlFor="toolDescription">
                           Description
                         </label>
 
                         <textarea
-                          id="tool-description"
-                          placeholder="Describe what this tool does..."
+                          id="toolDescription"
                           value={toolDescription}
                           onChange={(e) =>
                             setToolDescription(
                               e.target.value
                             )
                           }
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="full-width">
-                        <label htmlFor="tool-url">
-                          Tool URL
-                        </label>
-
-                        <input
-                          id="tool-url"
-                          type="url"
-                          placeholder="https://example.com"
-                          value={toolUrl}
-                          onChange={(e) =>
-                            setToolUrl(
-                              e.target.value
-                            )
-                          }
+                          placeholder="Describe what this tool does..."
                         />
                       </div>
 
@@ -1019,9 +975,7 @@ function App() {
                           }
                         />
 
-                        <span>
-                          Tool is active
-                        </span>
+                        Active
                       </label>
                     </div>
 
@@ -1029,7 +983,7 @@ function App() {
                       <button
                         type="button"
                         className="cancel-button"
-                        onClick={resetToolForm}
+                        onClick={closeToolForm}
                       >
                         Cancel
                       </button>
@@ -1037,11 +991,11 @@ function App() {
                       <button
                         type="submit"
                         className="save-tool-button"
-                        disabled={toolsLoading}
+                        disabled={savingTool}
                       >
-                        {toolsLoading
+                        {savingTool
                           ? 'Saving...'
-                          : editingTool
+                          : editingToolId
                             ? 'Update Tool'
                             : 'Save Tool'}
                       </button>
@@ -1058,17 +1012,31 @@ function App() {
 
               <section className="panel-card tools-list-panel">
                 <div className="tools-list-header">
-                  <div>
-                    <h2>All Tools</h2>
+                  <h2>All Tools</h2>
 
-                    <p>
-                      {activeTools} active /{' '}
-                      {tools.length} total
-                    </p>
-                  </div>
+                  <p>
+                    {tools.length} total tool
+                    {tools.length === 1 ? '' : 's'}
+                  </p>
                 </div>
 
-                {filteredTools.length === 0 ? (
+                <div className="tool-search">
+                  <input
+                    type="search"
+                    placeholder="🔍 Search tools..."
+                    value={toolSearch}
+                    onChange={(e) =>
+                      setToolSearch(e.target.value)
+                    }
+                  />
+                </div>
+
+                {toolsLoading ? (
+                  <div className="empty-tools">
+                    <h3>Loading tools...</h3>
+                    <p>Please wait.</p>
+                  </div>
+                ) : filteredTools.length === 0 ? (
                   <div className="empty-tools">
                     <div className="empty-icon">
                       🛠️
@@ -1082,7 +1050,7 @@ function App() {
 
                     <p>
                       {tools.length === 0
-                        ? 'Click Add Tool to create your first tool.'
+                        ? 'Click "Add Tool" to create your first tool.'
                         : 'Try a different search.'}
                     </p>
                   </div>
@@ -1090,12 +1058,12 @@ function App() {
                   <div className="tools-grid">
                     {filteredTools.map((tool) => (
                       <div
+                        key={tool.id}
                         className={
                           tool.is_active
                             ? 'tool-admin-card'
                             : 'tool-admin-card inactive'
                         }
-                        key={tool.id}
                       >
                         <div className="tool-card-top">
                           <div className="tool-card-icon">
@@ -1122,16 +1090,14 @@ function App() {
                             'No description provided.'}
                         </p>
 
-                        {tool.url && (
-                          <a
-                            className="tool-url"
-                            href={tool.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Open Tool ↗
-                          </a>
-                        )}
+                        <a
+                          href={tool.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tool-url"
+                        >
+                          Open Tool ↗
+                        </a>
 
                         <div className="tool-card-actions">
                           <button
@@ -1150,8 +1116,8 @@ function App() {
                             }
                           >
                             {tool.is_active
-                              ? 'Disable'
-                              : 'Enable'}
+                              ? '⏸️ Disable'
+                              : '▶️ Enable'}
                           </button>
 
                           <button
@@ -1176,8 +1142,7 @@ function App() {
               <h2>Statistics</h2>
 
               <p>
-                Overview of your ToolMaster Pro
-                platform.
+                Your website statistics will appear here.
               </p>
 
               <div className="stats-grid">
