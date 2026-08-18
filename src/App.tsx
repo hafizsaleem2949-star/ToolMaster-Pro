@@ -121,9 +121,7 @@ function App() {
     }
 
     if (!data) {
-      setMessage(
-        'Profile not found. Please contact administrator.'
-      )
+      setMessage('Profile not found. Please contact administrator.')
       setProfile(null)
       setLoading(false)
       return
@@ -163,9 +161,7 @@ function App() {
 
     const { data, error } = await supabase
       .from('tools')
-      .select(
-        'id, name, description, url, icon, is_active, created_at'
-      )
+      .select('id, name, description, url, icon, is_active, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -328,11 +324,10 @@ function App() {
     setLoading(true)
 
     if (isSignup) {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email,
-          password,
-        })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
       if (error) {
         setMessage(error.message)
@@ -365,9 +360,7 @@ function App() {
     }
 
     if (!data.session) {
-      setMessage(
-        'Login successful, but no session was created.'
-      )
+      setMessage('Login successful, but no session was created.')
       setLoading(false)
       return
     }
@@ -406,6 +399,8 @@ function App() {
     (tool) => tool.is_active
   ).length
 
+  const inactiveTools = tools.length - activeTools
+
   const filteredTools = tools.filter((tool) => {
     const search = toolSearch.toLowerCase()
 
@@ -443,7 +438,9 @@ function App() {
                 <p>{profile.email}</p>
               </div>
 
-              <button onClick={logout}>Logout</button>
+              <button onClick={logout}>
+                Logout
+              </button>
             </div>
 
             <h2>Welcome 👋</h2>
@@ -456,9 +453,7 @@ function App() {
               <h3>Your Tools</h3>
 
               {userTools.length === 0 ? (
-                <p>
-                  No tools are currently available.
-                </p>
+                <p>No tools are currently available.</p>
               ) : (
                 <div className="user-tools-grid">
                   {userTools.map((tool) => (
@@ -475,6 +470,7 @@ function App() {
 
                       <div>
                         <h4>{tool.name}</h4>
+
                         <p>
                           {tool.description ||
                             'Open this tool'}
@@ -494,7 +490,9 @@ function App() {
       <div className="admin-layout">
         <aside className="sidebar">
           <div className="brand">
-            <div className="brand-icon">TM</div>
+            <div className="brand-icon">
+              TM
+            </div>
 
             <div>
               <h2>ToolMaster</h2>
@@ -583,12 +581,16 @@ function App() {
               <h1>
                 {activePage === 'dashboard' &&
                   'Dashboard'}
+
                 {activePage === 'users' &&
                   'User Management'}
+
                 {activePage === 'tools' &&
                   'Tools Management'}
+
                 {activePage === 'statistics' &&
                   'Statistics'}
+
                 {activePage === 'settings' &&
                   'Settings'}
               </h1>
@@ -599,10 +601,15 @@ function App() {
             </div>
 
             <div className="admin-profile">
-              <div className="avatar">A</div>
+              <div className="avatar">
+                A
+              </div>
 
               <div>
-                <strong>Administrator</strong>
+                <strong>
+                  Administrator
+                </strong>
+
                 <span>Admin</span>
               </div>
             </div>
@@ -613,7 +620,9 @@ function App() {
             <>
               <div className="stats-grid">
                 <div className="stat-card blue">
-                  <div className="stat-icon">👥</div>
+                  <div className="stat-icon">
+                    👥
+                  </div>
 
                   <div>
                     <span>Total Users</span>
@@ -622,7 +631,9 @@ function App() {
                 </div>
 
                 <div className="stat-card purple">
-                  <div className="stat-icon">👑</div>
+                  <div className="stat-icon">
+                    👑
+                  </div>
 
                   <div>
                     <span>Total Admins</span>
@@ -631,7 +642,9 @@ function App() {
                 </div>
 
                 <div className="stat-card green">
-                  <div className="stat-icon">👤</div>
+                  <div className="stat-icon">
+                    👤
+                  </div>
 
                   <div>
                     <span>Normal Users</span>
@@ -640,7 +653,9 @@ function App() {
                 </div>
 
                 <div className="stat-card orange">
-                  <div className="stat-icon">🛠️</div>
+                  <div className="stat-icon">
+                    🛠️
+                  </div>
 
                   <div>
                     <span>Active Tools</span>
@@ -653,7 +668,10 @@ function App() {
                 <div className="panel-header">
                   <div>
                     <h2>Recent Users</h2>
-                    <p>Latest registered users</p>
+
+                    <p>
+                      Latest registered users
+                    </p>
                   </div>
 
                   <button
@@ -693,7 +711,8 @@ function App() {
                               <td>
                                 <span
                                   className={
-                                    user.role === 'admin'
+                                    user.role ===
+                                    'admin'
                                       ? 'role admin-role'
                                       : 'role user-role'
                                   }
@@ -723,6 +742,7 @@ function App() {
               <div className="panel-header">
                 <div>
                   <h2>All Users</h2>
+
                   <p>
                     Manage user accounts and permissions
                   </p>
@@ -790,7 +810,8 @@ function App() {
                                 onClick={() =>
                                   changeRole(
                                     user.id,
-                                    user.role === 'admin'
+                                    user.role ===
+                                      'admin'
                                       ? 'user'
                                       : 'admin'
                                   )
@@ -810,7 +831,9 @@ function App() {
               </div>
 
               {message && (
-                <p className="message">{message}</p>
+                <p className="message">
+                  {message}
+                </p>
               )}
             </section>
           )}
@@ -822,6 +845,7 @@ function App() {
                 <div className="panel-header">
                   <div>
                     <h2>Tools Management</h2>
+
                     <p>
                       Add, edit and manage your website tools
                     </p>
@@ -990,6 +1014,7 @@ function App() {
                 <div className="tools-list-header">
                   <div>
                     <h2>All Tools</h2>
+
                     <p>
                       {tools.length} total tool
                       {tools.length === 1 ? '' : 's'}
@@ -1015,7 +1040,9 @@ function App() {
                   </div>
                 ) : filteredTools.length === 0 ? (
                   <div className="empty-tools">
-                    <div className="empty-icon">🛠️</div>
+                    <div className="empty-icon">
+                      🛠️
+                    </div>
 
                     <h3>
                       {tools.length === 0
@@ -1118,6 +1145,7 @@ function App() {
               <div className="panel-card statistics-intro">
                 <div>
                   <h2>Website Statistics</h2>
+
                   <p>
                     Overview of your users and tools.
                   </p>
@@ -1144,7 +1172,9 @@ function App() {
 
               <div className="stats-grid statistics-grid">
                 <div className="stat-card blue">
-                  <div className="stat-icon">👥</div>
+                  <div className="stat-icon">
+                    👥
+                  </div>
 
                   <div>
                     <span>Total Users</span>
@@ -1153,7 +1183,9 @@ function App() {
                 </div>
 
                 <div className="stat-card purple">
-                  <div className="stat-icon">👑</div>
+                  <div className="stat-icon">
+                    👑
+                  </div>
 
                   <div>
                     <span>Administrators</span>
@@ -1162,7 +1194,9 @@ function App() {
                 </div>
 
                 <div className="stat-card green">
-                  <div className="stat-icon">👤</div>
+                  <div className="stat-icon">
+                    👤
+                  </div>
 
                   <div>
                     <span>Normal Users</span>
@@ -1171,7 +1205,9 @@ function App() {
                 </div>
 
                 <div className="stat-card orange">
-                  <div className="stat-icon">🛠️</div>
+                  <div className="stat-icon">
+                    🛠️
+                  </div>
 
                   <div>
                     <span>Total Tools</span>
@@ -1202,14 +1238,16 @@ function App() {
                       <span>Inactive Tools</span>
 
                       <strong className="stat-red">
-                        {tools.length - activeTools}
+                        {inactiveTools}
                       </strong>
                     </div>
 
                     <div className="statistics-row">
                       <span>Total Tools</span>
 
-                      <strong>{tools.length}</strong>
+                      <strong>
+                        {tools.length}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -1242,14 +1280,18 @@ function App() {
                     <div className="statistics-row">
                       <span>Total Users</span>
 
-                      <strong>{totalUsers}</strong>
+                      <strong>
+                        {totalUsers}
+                      </strong>
                     </div>
                   </div>
                 </div>
               </div>
 
               {message && (
-                <p className="message">{message}</p>
+                <p className="message">
+                  {message}
+                </p>
               )}
             </section>
           )}
@@ -1257,7 +1299,9 @@ function App() {
           {/* SETTINGS */}
           {activePage === 'settings' && (
             <section className="panel-card empty-panel">
-              <div className="empty-icon">⚙️</div>
+              <div className="empty-icon">
+                ⚙️
+              </div>
 
               <h2>Settings</h2>
 
@@ -1287,7 +1331,9 @@ function App() {
         <div className="mode-buttons">
           <button
             type="button"
-            className={!isAdminLogin ? 'active' : ''}
+            className={
+              !isAdminLogin ? 'active' : ''
+            }
             onClick={() => {
               setIsAdminLogin(false)
               setIsSignup(false)
@@ -1299,7 +1345,9 @@ function App() {
 
           <button
             type="button"
-            className={isAdminLogin ? 'active' : ''}
+            className={
+              isAdminLogin ? 'active' : ''
+            }
             onClick={() => {
               setIsAdminLogin(true)
               setIsSignup(false)
@@ -1326,7 +1374,9 @@ function App() {
         )}
 
         <form onSubmit={handleAuth}>
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">
+            Email
+          </label>
 
           <input
             id="email"
@@ -1371,7 +1421,9 @@ function App() {
         </form>
 
         {message && (
-          <p className="message">{message}</p>
+          <p className="message">
+            {message}
+          </p>
         )}
       </div>
     </main>
