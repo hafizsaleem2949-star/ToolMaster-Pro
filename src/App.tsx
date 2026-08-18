@@ -27,6 +27,12 @@ function App() {
   const [tools, setTools] = useState<Tool[]>([])
   const [tools, setTools] = useState<Tool[]>([])
 const [toolsLoading, setToolsLoading] = useState(false)
+  const [toolName, setToolName] = useState('')
+const [toolDescription, setToolDescription] = useState('')
+const [toolUrl, setToolUrl] = useState('')
+const [toolIcon, setToolIcon] = useState('🛠️')
+const [toolActive, setToolActive] = useState(true)
+const [editingToolId, setEditingToolId] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
