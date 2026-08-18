@@ -1154,6 +1154,150 @@ function App() {
           )}
 
           {activePage === 'statistics' && (
+        {activePage === 'statistics' && (
+  <section className="statistics-page">
+    <div className="panel-card statistics-intro">
+      <div>
+        <h2>Website Statistics</h2>
+        <p>
+          Overview of your users and tools.
+        </p>
+      </div>
+
+      <button
+        className="refresh-button"
+        onClick={async () => {
+          await loadUsers()
+          await loadTools()
+          setMessage('Statistics refreshed successfully.')
+        }}
+        disabled={usersLoading || toolsLoading}
+      >
+        {usersLoading || toolsLoading
+          ? 'Loading...'
+          : '↻ Refresh'}
+      </button>
+    </div>
+
+    <div className="stats-grid statistics-grid">
+      <div className="stat-card blue">
+        <div className="stat-icon">
+          👥
+        </div>
+
+        <div>
+          <span>Total Users</span>
+          <strong>{totalUsers}</strong>
+        </div>
+      </div>
+
+      <div className="stat-card purple">
+        <div className="stat-icon">
+          👑
+        </div>
+
+        <div>
+          <span>Administrators</span>
+          <strong>{totalAdmins}</strong>
+        </div>
+      </div>
+
+      <div className="stat-card green">
+        <div className="stat-icon">
+          👤
+        </div>
+
+        <div>
+          <span>Normal Users</span>
+          <strong>{normalUsers}</strong>
+        </div>
+      </div>
+
+      <div className="stat-card orange">
+        <div className="stat-icon">
+          🛠️
+        </div>
+
+        <div>
+          <span>Total Tools</span>
+          <strong>{tools.length}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div className="statistics-columns">
+      <div className="panel-card">
+        <div className="panel-header">
+          <div>
+            <h2>Tools Overview</h2>
+            <p>Current tool status</p>
+          </div>
+        </div>
+
+        <div className="statistics-list">
+          <div className="statistics-row">
+            <span>Active Tools</span>
+            <strong className="stat-green">
+              {activeTools}
+            </strong>
+          </div>
+
+          <div className="statistics-row">
+            <span>Inactive Tools</span>
+            <strong className="stat-red">
+              {tools.length - activeTools}
+            </strong>
+          </div>
+
+          <div className="statistics-row">
+            <span>Total Tools</span>
+            <strong>
+              {tools.length}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel-card">
+        <div className="panel-header">
+          <div>
+            <h2>Users Overview</h2>
+            <p>Current user roles</p>
+          </div>
+        </div>
+
+        <div className="statistics-list">
+          <div className="statistics-row">
+            <span>Administrators</span>
+            <strong className="stat-purple">
+              {totalAdmins}
+            </strong>
+          </div>
+
+          <div className="statistics-row">
+            <span>Normal Users</span>
+            <strong className="stat-green">
+              {normalUsers}
+            </strong>
+          </div>
+
+          <div className="statistics-row">
+            <span>Total Users</span>
+            <strong>
+              {totalUsers}
+            </strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {message && (
+      <p className="message">
+        {message}
+      </p>
+    )}
+  </section>
+)}
             <section className="panel-card">
               <h2>Statistics</h2>
 
