@@ -321,9 +321,7 @@ function App() {
     await loadTools()
   }
 
-  async function handleAuth(
-    e: FormEvent<HTMLFormElement>
-  ) {
+  async function handleAuth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     setMessage('')
@@ -424,9 +422,7 @@ function App() {
       <main className="auth-container">
         <div className="auth-card">
           <h2>Loading...</h2>
-          <p className="subtitle">
-            Please wait
-          </p>
+          <p className="subtitle">Please wait</p>
         </div>
       </main>
     )
@@ -447,9 +443,7 @@ function App() {
                 <p>{profile.email}</p>
               </div>
 
-              <button onClick={logout}>
-                Logout
-              </button>
+              <button onClick={logout}>Logout</button>
             </div>
 
             <h2>Welcome 👋</h2>
@@ -481,7 +475,6 @@ function App() {
 
                       <div>
                         <h4>{tool.name}</h4>
-
                         <p>
                           {tool.description ||
                             'Open this tool'}
@@ -501,9 +494,7 @@ function App() {
       <div className="admin-layout">
         <aside className="sidebar">
           <div className="brand">
-            <div className="brand-icon">
-              TM
-            </div>
+            <div className="brand-icon">TM</div>
 
             <div>
               <h2>ToolMaster</h2>
@@ -592,16 +583,12 @@ function App() {
               <h1>
                 {activePage === 'dashboard' &&
                   'Dashboard'}
-
                 {activePage === 'users' &&
                   'User Management'}
-
                 {activePage === 'tools' &&
                   'Tools Management'}
-
                 {activePage === 'statistics' &&
                   'Statistics'}
-
                 {activePage === 'settings' &&
                   'Settings'}
               </h1>
@@ -612,72 +599,52 @@ function App() {
             </div>
 
             <div className="admin-profile">
-              <div className="avatar">
-                A
-              </div>
+              <div className="avatar">A</div>
 
               <div>
-                <strong>
-                  Administrator
-                </strong>
-
+                <strong>Administrator</strong>
                 <span>Admin</span>
               </div>
             </div>
           </header>
 
+          {/* DASHBOARD */}
           {activePage === 'dashboard' && (
             <>
               <div className="stats-grid">
                 <div className="stat-card blue">
-                  <div className="stat-icon">
-                    👥
-                  </div>
+                  <div className="stat-icon">👥</div>
 
                   <div>
                     <span>Total Users</span>
-                    <strong>
-                      {totalUsers}
-                    </strong>
+                    <strong>{totalUsers}</strong>
                   </div>
                 </div>
 
                 <div className="stat-card purple">
-                  <div className="stat-icon">
-                    👑
-                  </div>
+                  <div className="stat-icon">👑</div>
 
                   <div>
                     <span>Total Admins</span>
-                    <strong>
-                      {totalAdmins}
-                    </strong>
+                    <strong>{totalAdmins}</strong>
                   </div>
                 </div>
 
                 <div className="stat-card green">
-                  <div className="stat-icon">
-                    👤
-                  </div>
+                  <div className="stat-icon">👤</div>
 
                   <div>
                     <span>Normal Users</span>
-                    <strong>
-                      {normalUsers}
-                    </strong>
+                    <strong>{normalUsers}</strong>
                   </div>
                 </div>
 
                 <div className="stat-card orange">
-                  <div className="stat-icon">
-                    🛠️
-                  </div>
+                  <div className="stat-icon">🛠️</div>
 
                   <div>
                     <span>Active Tools</span>
-                    <strong>
-                      {activeTools}
-                    </strong>
+                    <strong>{activeTools}</strong>
                   </div>
                 </div>
               </div>
@@ -686,9 +653,7 @@ function App() {
                 <div className="panel-header">
                   <div>
                     <h2>Recent Users</h2>
-                    <p>
-                      Latest registered users
-                    </p>
+                    <p>Latest registered users</p>
                   </div>
 
                   <button
@@ -728,8 +693,7 @@ function App() {
                               <td>
                                 <span
                                   className={
-                                    user.role ===
-                                    'admin'
+                                    user.role === 'admin'
                                       ? 'role admin-role'
                                       : 'role user-role'
                                   }
@@ -753,6 +717,7 @@ function App() {
             </>
           )}
 
+          {/* USERS */}
           {activePage === 'users' && (
             <section className="panel-card">
               <div className="panel-header">
@@ -825,15 +790,13 @@ function App() {
                                 onClick={() =>
                                   changeRole(
                                     user.id,
-                                    user.role ===
-                                      'admin'
+                                    user.role === 'admin'
                                       ? 'user'
                                       : 'admin'
                                   )
                                 }
                               >
-                                {user.role ===
-                                'admin'
+                                {user.role === 'admin'
                                   ? 'Make User'
                                   : 'Make Admin'}
                               </button>
@@ -847,20 +810,18 @@ function App() {
               </div>
 
               {message && (
-                <p className="message">
-                  {message}
-                </p>
+                <p className="message">{message}</p>
               )}
             </section>
           )}
 
+          {/* TOOLS */}
           {activePage === 'tools' && (
             <>
               <section className="panel-card">
                 <div className="panel-header">
                   <div>
                     <h2>Tools Management</h2>
-
                     <p>
                       Add, edit and manage your website tools
                     </p>
@@ -1054,9 +1015,7 @@ function App() {
                   </div>
                 ) : filteredTools.length === 0 ? (
                   <div className="empty-tools">
-                    <div className="empty-icon">
-                      🛠️
-                    </div>
+                    <div className="empty-icon">🛠️</div>
 
                     <h3>
                       {tools.length === 0
@@ -1153,185 +1112,57 @@ function App() {
             </>
           )}
 
+          {/* STATISTICS */}
           {activePage === 'statistics' && (
-        {activePage === 'statistics' && (
-  <section className="statistics-page">
-    <div className="panel-card statistics-intro">
-      <div>
-        <h2>Website Statistics</h2>
-        <p>
-          Overview of your users and tools.
-        </p>
-      </div>
+            <section className="statistics-page">
+              <div className="panel-card statistics-intro">
+                <div>
+                  <h2>Website Statistics</h2>
+                  <p>
+                    Overview of your users and tools.
+                  </p>
+                </div>
 
-      <button
-        className="refresh-button"
-        onClick={async () => {
-          await loadUsers()
-          await loadTools()
-          setMessage('Statistics refreshed successfully.')
-        }}
-        disabled={usersLoading || toolsLoading}
-      >
-        {usersLoading || toolsLoading
-          ? 'Loading...'
-          : '↻ Refresh'}
-      </button>
-    </div>
+                <button
+                  className="refresh-button"
+                  onClick={async () => {
+                    await loadUsers()
+                    await loadTools()
+                    setMessage(
+                      'Statistics refreshed successfully.'
+                    )
+                  }}
+                  disabled={
+                    usersLoading || toolsLoading
+                  }
+                >
+                  {usersLoading || toolsLoading
+                    ? 'Loading...'
+                    : '↻ Refresh'}
+                </button>
+              </div>
 
-    <div className="stats-grid statistics-grid">
-      <div className="stat-card blue">
-        <div className="stat-icon">
-          👥
-        </div>
-
-        <div>
-          <span>Total Users</span>
-          <strong>{totalUsers}</strong>
-        </div>
-      </div>
-
-      <div className="stat-card purple">
-        <div className="stat-icon">
-          👑
-        </div>
-
-        <div>
-          <span>Administrators</span>
-          <strong>{totalAdmins}</strong>
-        </div>
-      </div>
-
-      <div className="stat-card green">
-        <div className="stat-icon">
-          👤
-        </div>
-
-        <div>
-          <span>Normal Users</span>
-          <strong>{normalUsers}</strong>
-        </div>
-      </div>
-
-      <div className="stat-card orange">
-        <div className="stat-icon">
-          🛠️
-        </div>
-
-        <div>
-          <span>Total Tools</span>
-          <strong>{tools.length}</strong>
-        </div>
-      </div>
-    </div>
-
-    <div className="statistics-columns">
-      <div className="panel-card">
-        <div className="panel-header">
-          <div>
-            <h2>Tools Overview</h2>
-            <p>Current tool status</p>
-          </div>
-        </div>
-
-        <div className="statistics-list">
-          <div className="statistics-row">
-            <span>Active Tools</span>
-            <strong className="stat-green">
-              {activeTools}
-            </strong>
-          </div>
-
-          <div className="statistics-row">
-            <span>Inactive Tools</span>
-            <strong className="stat-red">
-              {tools.length - activeTools}
-            </strong>
-          </div>
-
-          <div className="statistics-row">
-            <span>Total Tools</span>
-            <strong>
-              {tools.length}
-            </strong>
-          </div>
-        </div>
-      </div>
-
-      <div className="panel-card">
-        <div className="panel-header">
-          <div>
-            <h2>Users Overview</h2>
-            <p>Current user roles</p>
-          </div>
-        </div>
-
-        <div className="statistics-list">
-          <div className="statistics-row">
-            <span>Administrators</span>
-            <strong className="stat-purple">
-              {totalAdmins}
-            </strong>
-          </div>
-
-          <div className="statistics-row">
-            <span>Normal Users</span>
-            <strong className="stat-green">
-              {normalUsers}
-            </strong>
-          </div>
-
-          <div className="statistics-row">
-            <span>Total Users</span>
-            <strong>
-              {totalUsers}
-            </strong>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {message && (
-      <p className="message">
-        {message}
-      </p>
-    )}
-  </section>
-)}
-            <section className="panel-card">
-              <h2>Statistics</h2>
-
-              <p>
-                Your website statistics will appear here.
-              </p>
-
-              <div className="stats-grid">
+              <div className="stats-grid statistics-grid">
                 <div className="stat-card blue">
-                  <div className="stat-icon">
-                    👥
-                  </div>
+                  <div className="stat-icon">👥</div>
 
                   <div>
-                    <span>Users</span>
+                    <span>Total Users</span>
                     <strong>{totalUsers}</strong>
                   </div>
                 </div>
 
                 <div className="stat-card purple">
-                  <div className="stat-icon">
-                    👑
-                  </div>
+                  <div className="stat-icon">👑</div>
 
                   <div>
-                    <span>Admins</span>
+                    <span>Administrators</span>
                     <strong>{totalAdmins}</strong>
                   </div>
                 </div>
 
                 <div className="stat-card green">
-                  <div className="stat-icon">
-                    👤
-                  </div>
+                  <div className="stat-icon">👤</div>
 
                   <div>
                     <span>Normal Users</span>
@@ -1340,24 +1171,93 @@ function App() {
                 </div>
 
                 <div className="stat-card orange">
-                  <div className="stat-icon">
-                    🛠️
-                  </div>
+                  <div className="stat-icon">🛠️</div>
 
                   <div>
-                    <span>Active Tools</span>
-                    <strong>{activeTools}</strong>
+                    <span>Total Tools</span>
+                    <strong>{tools.length}</strong>
                   </div>
                 </div>
               </div>
+
+              <div className="statistics-columns">
+                <div className="panel-card">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Tools Overview</h2>
+                      <p>Current tool status</p>
+                    </div>
+                  </div>
+
+                  <div className="statistics-list">
+                    <div className="statistics-row">
+                      <span>Active Tools</span>
+
+                      <strong className="stat-green">
+                        {activeTools}
+                      </strong>
+                    </div>
+
+                    <div className="statistics-row">
+                      <span>Inactive Tools</span>
+
+                      <strong className="stat-red">
+                        {tools.length - activeTools}
+                      </strong>
+                    </div>
+
+                    <div className="statistics-row">
+                      <span>Total Tools</span>
+
+                      <strong>{tools.length}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="panel-card">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Users Overview</h2>
+                      <p>Current user roles</p>
+                    </div>
+                  </div>
+
+                  <div className="statistics-list">
+                    <div className="statistics-row">
+                      <span>Administrators</span>
+
+                      <strong className="stat-purple">
+                        {totalAdmins}
+                      </strong>
+                    </div>
+
+                    <div className="statistics-row">
+                      <span>Normal Users</span>
+
+                      <strong className="stat-green">
+                        {normalUsers}
+                      </strong>
+                    </div>
+
+                    <div className="statistics-row">
+                      <span>Total Users</span>
+
+                      <strong>{totalUsers}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {message && (
+                <p className="message">{message}</p>
+              )}
             </section>
           )}
 
+          {/* SETTINGS */}
           {activePage === 'settings' && (
             <section className="panel-card empty-panel">
-              <div className="empty-icon">
-                ⚙️
-              </div>
+              <div className="empty-icon">⚙️</div>
 
               <h2>Settings</h2>
 
@@ -1387,9 +1287,7 @@ function App() {
         <div className="mode-buttons">
           <button
             type="button"
-            className={
-              !isAdminLogin ? 'active' : ''
-            }
+            className={!isAdminLogin ? 'active' : ''}
             onClick={() => {
               setIsAdminLogin(false)
               setIsSignup(false)
@@ -1401,9 +1299,7 @@ function App() {
 
           <button
             type="button"
-            className={
-              isAdminLogin ? 'active' : ''
-            }
+            className={isAdminLogin ? 'active' : ''}
             onClick={() => {
               setIsAdminLogin(true)
               setIsSignup(false)
@@ -1430,9 +1326,7 @@ function App() {
         )}
 
         <form onSubmit={handleAuth}>
-          <label htmlFor="email">
-            Email
-          </label>
+          <label htmlFor="email">Email</label>
 
           <input
             id="email"
@@ -1477,9 +1371,7 @@ function App() {
         </form>
 
         {message && (
-          <p className="message">
-            {message}
-          </p>
+          <p className="message">{message}</p>
         )}
       </div>
     </main>
