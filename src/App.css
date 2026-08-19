@@ -1206,3 +1206,153 @@ button {
     width: 100%;
   }
 }
+/* =========================
+   SETTINGS
+========================= */
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-profile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.settings-avatar {
+  width: 65px;
+  height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.settings-profile h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.settings-profile p {
+  margin: 5px 0 9px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.settings-role {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: #ede9fe;
+  color: #6d28d9;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.settings-form {
+  max-width: 600px;
+}
+
+.settings-form > div {
+  margin-bottom: 17px;
+}
+
+.settings-form label {
+  display: block;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-form input {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  outline: none;
+  background: #fff;
+  color: #0f172a;
+}
+
+.settings-form input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.save-settings-button {
+  padding: 11px 17px;
+  border: 0;
+  border-radius: 9px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+}
+
+.save-settings-button:hover {
+  background: #1d4ed8;
+}
+
+.save-settings-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-message {
+  margin: 15px 0 0;
+  color: #16a34a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.account-row:last-child {
+  border-bottom: 0;
+}
+
+.account-row span {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.account-row strong {
+  color: #0f172a;
+  font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .settings-profile {
+    align-items: flex-start;
+  }
+
+  .account-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}
