@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 import { supabase } from './supabase'
@@ -20,13 +20,6 @@ type Tool = {
   created_at: string
 }
 
-type Page =
-  | 'dashboard'
-  | 'users'
-  | 'tools'
-  | 'statistics'
-  | 'settings'
-
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -41,38 +34,29 @@ function App() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
 
   const [isSignup, setIsSignup] = useState(false)
   const [isAdminLogin, setIsAdminLogin] = useState(false)
 
-  const [activePage, setActivePage] =
-    useState<Page>('dashboard')
-
+  const [activePage, setActivePage] = useState('dashboard')
   const [message, setMessage] = useState('')
 
   const [showToolForm, setShowToolForm] = useState(false)
-  const [editingToolId, setEditingToolId] =
-    useState<string | null>(null)
-
+  const [editingToolId, setEditingToolId] = useState<string | null>(null)
   const [toolSearch, setToolSearch] = useState('')
 
   const [toolName, setToolName] = useState('')
-  const [toolDescription, setToolDescription] =
-    useState('')
+  const [toolDescription, setToolDescription] = useState('')
   const [toolUrl, setToolUrl] = useState('')
   const [toolIcon, setToolIcon] = useState('🛠️')
   const [toolActive, setToolActive] = useState(true)
 
-  /* =========================
-     AUTH INITIALIZATION
-  ========================= */
-
   useEffect(() => {
     let mounted = true
 
-    async function initialize() {
-      const { data, error } =
-        await supabase.auth.getSession()
+    async function start() {
+      const { data, error } = await supabase.auth.getSession()
 
       if (!mounted) return
 
@@ -91,7 +75,7 @@ function App() {
       }
     }
 
-    initialize()
+    start()
 
     const {
       data: { subscription },
@@ -101,10 +85,7 @@ function App() {
 
         setSession(currentSession)
 
-        if (
-          event === 'SIGNED_OUT' ||
-          !currentSession
-        ) {
+        if (event === 'SIGNED_OUT' || !currentSession) {
           setProfile(null)
           setUsers([])
           setTools([])
@@ -126,16 +107,10 @@ function App() {
     }
   }, [])
 
-  /* =========================
-     LOAD PROFILE
-  ========================= */
-
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from('profiles')
-      .select(
-        'id, email, role, created_at'
-      )
+      .select('id, email, role, created_at')
       .eq('id', userId)
       .maybeSingle()
 
@@ -147,105 +122,66 @@ function App() {
     }
 
     if (!data) {
-      setMessage(
-        'Profile not found. Please contact administrator.'
-      )
+      setMessage('Profile not found. Please contact administrator.')
       setProfile(null)
       setLoading(false)
       return
     }
 
-    const currentProfile = data as Profile
-
-    setProfile(currentProfile)
+    setProfile(data as Profile)
 
     await loadTools()
 
-    if (currentProfile.role === 'admin') {
+    if (data.role === 'admin') {
       await loadUsers()
     }
 
     setLoading(false)
   }
 
-  /* =========================
-     LOAD USERS
-  ========================= */
-
   async function loadUsers() {
     setUsersLoading(true)
 
     const { data, error } = await supabase
       .from('profiles')
-      .select(
-        'id, email, role, created_at'
-      )
-      .order('created_at', {
-        ascending: false,
-      })
+      .select('id, email, role, created_at')
+      .order('created_at', { ascending: false })
 
     if (error) {
       setMessage(error.message)
       setUsers([])
     } else {
-      setUsers(
-        (data || []) as Profile[]
-      )
+      setUsers((data || []) as Profile[])
     }
 
     setUsersLoading(false)
   }
-
-  /* =========================
-     LOAD TOOLS
-  ========================= */
 
   async function loadTools() {
     setToolsLoading(true)
 
     const { data, error } = await supabase
       .from('tools')
-      .select(
-        'id, name, description, url, icon, is_active, created_at'
-      )
-      .order('created_at', {
-        ascending: false,
-      })
+      .select('id, name, description, url, icon, is_active, created_at')
+      .order('created_at', { ascending: false })
 
     if (error) {
       setMessage(error.message)
       setTools([])
     } else {
-      setTools(
-        (data || []) as Tool[]
-      )
+      setTools((data || []) as Tool[])
     }
 
     setToolsLoading(false)
   }
 
-  /* =========================
-     CHANGE USER ROLE
-  ========================= */
-
   async function changeRole(
     userId: string,
     newRole: 'user' | 'admin'
   ) {
-    setMessage('')
-
-    if (userId === profile?.id) {
-      setMessage(
-        'You cannot change your own admin role.'
-      )
-      return
-    }
-
     const { error } = await supabase
       .from('profiles')
-      .update({
-        role: newRole,
-      })
+      .update({ role: newRole })
       .eq('id', userId)
 
     if (error) {
@@ -253,18 +189,9 @@ function App() {
       return
     }
 
-    setMessage(
-      newRole === 'admin'
-        ? 'User promoted to admin successfully.'
-        : 'Admin changed to normal user successfully.'
-    )
-
+    setMessage('Role updated successfully.')
     await loadUsers()
   }
-
-  /* =========================
-     TOOL FORM
-  ========================= */
 
   function resetToolForm() {
     setEditingToolId(null)
@@ -284,13 +211,9 @@ function App() {
   function openEditTool(tool: Tool) {
     setEditingToolId(tool.id)
     setToolName(tool.name)
-    setToolDescription(
-      tool.description || ''
-    )
+    setToolDescription(tool.description || '')
     setToolUrl(tool.url)
-    setToolIcon(
-      tool.icon || '🛠️'
-    )
+    setToolIcon(tool.icon || '🛠️')
     setToolActive(tool.is_active)
     setShowToolForm(true)
     setMessage('')
@@ -301,22 +224,11 @@ function App() {
     setShowToolForm(false)
   }
 
-  /* =========================
-     SAVE TOOL
-  ========================= */
+  async function saveTool(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
 
-  async function saveTool(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault()
-
-    if (
-      !toolName.trim() ||
-      !toolUrl.trim()
-    ) {
-      setMessage(
-        'Tool name and URL are required.'
-      )
+    if (!toolName.trim() || !toolUrl.trim()) {
+      setMessage('Tool name and URL are required.')
       return
     }
 
@@ -325,11 +237,9 @@ function App() {
 
     const toolData = {
       name: toolName.trim(),
-      description:
-        toolDescription.trim() || null,
+      description: toolDescription.trim(),
       url: toolUrl.trim(),
-      icon:
-        toolIcon.trim() || '🛠️',
+      icon: toolIcon.trim() || '🛠️',
       is_active: toolActive,
     }
 
@@ -345,9 +255,7 @@ function App() {
         return
       }
 
-      setMessage(
-        'Tool updated successfully.'
-      )
+      setMessage('Tool updated successfully.')
     } else {
       const { error } = await supabase
         .from('tools')
@@ -359,9 +267,7 @@ function App() {
         return
       }
 
-      setMessage(
-        'Tool added successfully.'
-      )
+      setMessage('Tool added successfully.')
     }
 
     closeToolForm()
@@ -369,13 +275,7 @@ function App() {
     setSavingTool(false)
   }
 
-  /* =========================
-     TOGGLE TOOL
-  ========================= */
-
   async function toggleTool(tool: Tool) {
-    setMessage('')
-
     const { error } = await supabase
       .from('tools')
       .update({
@@ -390,28 +290,19 @@ function App() {
 
     setMessage(
       tool.is_active
-        ? 'Tool disabled successfully.'
-        : 'Tool enabled successfully.'
+        ? 'Tool deactivated.'
+        : 'Tool activated.'
     )
 
     await loadTools()
   }
 
-  /* =========================
-     DELETE TOOL
-  ========================= */
-
-  async function deleteTool(
-    toolId: string
-  ) {
-    const confirmed =
-      window.confirm(
-        'Are you sure you want to delete this tool?'
-      )
+  async function deleteTool(toolId: string) {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this tool?'
+    )
 
     if (!confirmed) return
-
-    setMessage('')
 
     const { error } = await supabase
       .from('tools')
@@ -423,31 +314,41 @@ function App() {
       return
     }
 
-    setMessage(
-      'Tool deleted successfully.'
-    )
-
+    setMessage('Tool deleted successfully.')
     await loadTools()
   }
 
-  /* =========================
-     LOGIN / SIGNUP
-  ========================= */
-
-  async function handleAuth(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault()
+  async function handleAuth(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
 
     setMessage('')
     setLoading(true)
 
+    // =========================
+    // USER SIGNUP
+    // =========================
+
     if (isSignup) {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        })
+      if (password.length < 6) {
+        setMessage(
+          'Password must be at least 6 characters.'
+        )
+        setLoading(false)
+        return
+      }
+
+      if (password !== confirmPassword) {
+        setMessage(
+          'Password and Confirm Password do not match.'
+        )
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
       if (error) {
         setMessage(error.message)
@@ -456,22 +357,27 @@ function App() {
       }
 
       if (data.session) {
-        await loadProfile(
-          data.session.user.id
-        )
+        await loadProfile(data.session.user.id)
       } else {
         setMessage(
-          'Account created. Please verify your email, then login.'
+          'Account created successfully. Please verify your email, then login.'
         )
+
+        setPassword('')
+        setConfirmPassword('')
         setLoading(false)
       }
 
       return
     }
 
+    // =========================
+    // LOGIN
+    // =========================
+
     const { data, error } =
       await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email,
         password,
       })
 
@@ -490,15 +396,8 @@ function App() {
     }
 
     setSession(data.session)
-
-    await loadProfile(
-      data.session.user.id
-    )
+    await loadProfile(data.session.user.id)
   }
-
-  /* =========================
-     LOGOUT
-  ========================= */
 
   async function logout() {
     await supabase.auth.signOut()
@@ -510,65 +409,80 @@ function App() {
 
     setEmail('')
     setPassword('')
-    setMessage('')
+    setConfirmPassword('')
 
+    setMessage('')
     setActivePage('dashboard')
 
     closeToolForm()
   }
 
-  /* =========================
-     STATISTICS
-  ========================= */
+  function switchToUserLogin() {
+    setIsAdminLogin(false)
+    setIsSignup(false)
+
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+
+    setMessage('')
+  }
+
+  function switchToAdminLogin() {
+    setIsAdminLogin(true)
+    setIsSignup(false)
+
+    setEmail('')
+    setPassword('')
+    setConfirmPassword('')
+
+    setMessage('')
+  }
+
+  function toggleSignup() {
+    setIsSignup(!isSignup)
+
+    setPassword('')
+    setConfirmPassword('')
+    setMessage('')
+  }
 
   const totalUsers = users.length
 
-  const totalAdmins =
-    users.filter(
-      (user) => user.role === 'admin'
-    ).length
+  const totalAdmins = users.filter(
+    (user) => user.role === 'admin'
+  ).length
 
-  const normalUsers =
-    users.filter(
-      (user) => user.role === 'user'
-    ).length
+  const normalUsers = users.filter(
+    (user) => user.role === 'user'
+  ).length
 
-  const activeTools =
-    tools.filter(
-      (tool) => tool.is_active
-    ).length
+  const activeTools = tools.filter(
+    (tool) => tool.is_active
+  ).length
 
-  const inactiveTools =
-    tools.length - activeTools
+  const inactiveTools = tools.length - activeTools
 
-  const filteredTools = useMemo(() => {
-    const search =
-      toolSearch.trim().toLowerCase()
+  const filteredTools = tools.filter((tool) => {
+    const search = toolSearch.toLowerCase()
 
-    if (!search) return tools
+    return (
+      tool.name.toLowerCase().includes(search) ||
+      (tool.description || '')
+        .toLowerCase()
+        .includes(search)
+    )
+  })
 
-    return tools.filter((tool) => {
-      return (
-        tool.name
-          .toLowerCase()
-          .includes(search) ||
-        (tool.description || '')
-          .toLowerCase()
-          .includes(search)
-      )
-    })
-  }, [tools, toolSearch])
-
-  /* =========================
-     LOADING
-  ========================= */
+  // =========================
+  // LOADING
+  // =========================
 
   if (loading) {
     return (
       <main className="auth-container">
         <div className="auth-card">
           <h2>Loading...</h2>
-
           <p className="subtitle">
             Please wait
           </p>
@@ -577,63 +491,57 @@ function App() {
     )
   }
 
-  /* =========================
-     USER DASHBOARD
-  ========================= */
+  // =========================
+  // LOGGED IN
+  // =========================
 
-  if (
-    session &&
-    profile &&
-    profile.role !== 'admin'
-  ) {
-    const userTools =
-      tools.filter(
+  if (session && profile) {
+    // =========================
+    // NORMAL USER
+    // =========================
+
+    if (profile.role !== 'admin') {
+      const userTools = tools.filter(
         (tool) => tool.is_active
       )
 
-    return (
-      <main className="user-dashboard">
-        <div className="user-card">
-          <div className="user-topbar">
-            <div>
-              <h1>
-                ToolMaster Pro
-              </h1>
+      return (
+        <main className="user-dashboard">
+          <div className="user-card">
+            <div className="user-topbar">
+              <div>
+                <h1>ToolMaster Pro</h1>
 
-              <p>
-                {profile.email}
-              </p>
+                <p>
+                  {profile.email}
+                </p>
+              </div>
+
+              <button onClick={logout}>
+                Logout
+              </button>
             </div>
 
-            <button onClick={logout}>
-              Logout
-            </button>
-          </div>
+            <h2>
+              Welcome 👋
+            </h2>
 
-          <h2>
-            Welcome 👋
-          </h2>
+            <p>
+              You have successfully logged in.
+            </p>
 
-          <p>
-            You have successfully
-            logged in.
-          </p>
+            <div className="user-tools-box">
+              <h3>
+                Your Tools
+              </h3>
 
-          <div className="user-tools-box">
-            <h3>
-              Available Tools
-            </h3>
-
-            {userTools.length ===
-            0 ? (
-              <p>
-                No tools are currently
-                available.
-              </p>
-            ) : (
-              <div className="user-tools-grid">
-                {userTools.map(
-                  (tool) => (
+              {userTools.length === 0 ? (
+                <p>
+                  No tools are currently available.
+                </p>
+              ) : (
+                <div className="user-tools-grid">
+                  {userTools.map((tool) => (
                     <a
                       key={tool.id}
                       href={tool.url}
@@ -642,8 +550,7 @@ function App() {
                       className="user-tool-card"
                     >
                       <div className="user-tool-icon">
-                        {tool.icon ||
-                          '🛠️'}
+                        {tool.icon || '🛠️'}
                       </div>
 
                       <div>
@@ -657,25 +564,19 @@ function App() {
                         </p>
                       </div>
                     </a>
-                  )
-                )}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
-    )
-  }
+        </main>
+      )
+    }
 
-  /* =========================
-     ADMIN DASHBOARD
-  ========================= */
+    // =========================
+    // ADMIN PANEL
+    // =========================
 
-  if (
-    session &&
-    profile &&
-    profile.role === 'admin'
-  ) {
     return (
       <div className="admin-layout">
         <aside className="sidebar">
@@ -698,15 +599,12 @@ function App() {
           <nav>
             <button
               className={
-                activePage ===
-                'dashboard'
+                activePage === 'dashboard'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'dashboard'
-                )
+                setActivePage('dashboard')
               }
             >
               🏠 Dashboard
@@ -740,15 +638,12 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'statistics'
+                activePage === 'statistics'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'statistics'
-                )
+                setActivePage('statistics')
               }
             >
               📊 Statistics
@@ -756,15 +651,12 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'settings'
+                activePage === 'settings'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'settings'
-                )
+                setActivePage('settings')
               }
             >
               ⚙️ Settings
@@ -780,35 +672,27 @@ function App() {
         </aside>
 
         <main className="admin-main">
-          {/* HEADER */}
-
           <header className="admin-header">
             <div>
               <h1>
-                {activePage ===
-                  'dashboard' &&
+                {activePage === 'dashboard' &&
                   'Dashboard'}
 
-                {activePage ===
-                  'users' &&
+                {activePage === 'users' &&
                   'User Management'}
 
-                {activePage ===
-                  'tools' &&
+                {activePage === 'tools' &&
                   'Tools Management'}
 
-                {activePage ===
-                  'statistics' &&
+                {activePage === 'statistics' &&
                   'Statistics'}
 
-                {activePage ===
-                  'settings' &&
+                {activePage === 'settings' &&
                   'Settings'}
               </h1>
 
               <p>
-                Welcome back,{' '}
-                {profile.email}
+                Welcome back, {profile.email}
               </p>
             </div>
 
@@ -833,8 +717,7 @@ function App() {
               DASHBOARD
           ========================= */}
 
-          {activePage ===
-            'dashboard' && (
+          {activePage === 'dashboard' && (
             <>
               <div className="stats-grid">
                 <div className="stat-card blue">
@@ -910,19 +793,14 @@ function App() {
                     </h2>
 
                     <p>
-                      Latest registered
-                      users
+                      Latest registered users
                     </p>
                   </div>
 
                   <button
                     className="refresh-button"
-                    onClick={
-                      loadUsers
-                    }
-                    disabled={
-                      usersLoading
-                    }
+                    onClick={loadUsers}
+                    disabled={usersLoading}
                   >
                     {usersLoading
                       ? 'Loading...'
@@ -930,13 +808,12 @@ function App() {
                   </button>
                 </div>
 
-                {users.length ===
-                0 ? (
-                  <p>
-                    No users found.
-                  </p>
-                ) : (
-                  <div className="users-table-wrapper">
+                <div className="users-table-wrapper">
+                  {users.length === 0 ? (
+                    <p>
+                      No users found.
+                    </p>
+                  ) : (
                     <table className="users-table">
                       <thead>
                         <tr>
@@ -956,51 +833,37 @@ function App() {
 
                       <tbody>
                         {users
-                          .slice(
-                            0,
-                            5
-                          )
-                          .map(
-                            (
-                              user
-                            ) => (
-                              <tr
-                                key={
-                                  user.id
-                                }
-                              >
-                                <td>
-                                  {user.email ||
-                                    'No email'}
-                                </td>
+                          .slice(0, 5)
+                          .map((user) => (
+                            <tr key={user.id}>
+                              <td>
+                                {user.email ||
+                                  'No email'}
+                              </td>
 
-                                <td>
-                                  <span
-                                    className={
-                                      user.role ===
-                                      'admin'
-                                        ? 'role admin-role'
-                                        : 'role user-role'
-                                    }
-                                  >
-                                    {
-                                      user.role
-                                    }
-                                  </span>
-                                </td>
+                              <td>
+                                <span
+                                  className={
+                                    user.role === 'admin'
+                                      ? 'role admin-role'
+                                      : 'role user-role'
+                                  }
+                                >
+                                  {user.role}
+                                </span>
+                              </td>
 
-                                <td>
-                                  {new Date(
-                                    user.created_at
-                                  ).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            )
-                          )}
+                              <td>
+                                {new Date(
+                                  user.created_at
+                                ).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
-                  </div>
-                )}
+                  )}
+                </div>
               </section>
             </>
           )}
@@ -1009,8 +872,7 @@ function App() {
               USERS
           ========================= */}
 
-          {activePage ===
-            'users' && (
+          {activePage === 'users' && (
             <section className="panel-card">
               <div className="panel-header">
                 <div>
@@ -1019,19 +881,14 @@ function App() {
                   </h2>
 
                   <p>
-                    Manage user accounts
-                    and permissions
+                    Manage user accounts and permissions
                   </p>
                 </div>
 
                 <button
                   className="refresh-button"
-                  onClick={
-                    loadUsers
-                  }
-                  disabled={
-                    usersLoading
-                  }
+                  onClick={loadUsers}
+                  disabled={usersLoading}
                 >
                   {usersLoading
                     ? 'Loading...'
@@ -1039,13 +896,12 @@ function App() {
                 </button>
               </div>
 
-              {users.length ===
-              0 ? (
-                <p>
-                  No users found.
-                </p>
-              ) : (
-                <div className="users-table-wrapper">
+              <div className="users-table-wrapper">
+                {users.length === 0 ? (
+                  <p>
+                    No users found.
+                  </p>
+                ) : (
                   <table className="users-table">
                     <thead>
                       <tr>
@@ -1068,73 +924,60 @@ function App() {
                     </thead>
 
                     <tbody>
-                      {users.map(
-                        (user) => (
-                          <tr
-                            key={
-                              user.id
-                            }
-                          >
-                            <td>
-                              {user.email ||
-                                'No email'}
-                            </td>
+                      {users.map((user) => (
+                        <tr key={user.id}>
+                          <td>
+                            {user.email ||
+                              'No email'}
+                          </td>
 
-                            <td>
-                              <span
-                                className={
-                                  user.role ===
-                                  'admin'
-                                    ? 'role admin-role'
-                                    : 'role user-role'
+                          <td>
+                            <span
+                              className={
+                                user.role === 'admin'
+                                  ? 'role admin-role'
+                                  : 'role user-role'
+                              }
+                            >
+                              {user.role}
+                            </span>
+                          </td>
+
+                          <td>
+                            {new Date(
+                              user.created_at
+                            ).toLocaleDateString()}
+                          </td>
+
+                          <td>
+                            {user.id === profile.id ? (
+                              <span className="current-user">
+                                Current Admin
+                              </span>
+                            ) : (
+                              <button
+                                className="role-button"
+                                onClick={() =>
+                                  changeRole(
+                                    user.id,
+                                    user.role === 'admin'
+                                      ? 'user'
+                                      : 'admin'
+                                  )
                                 }
                               >
-                                {
-                                  user.role
-                                }
-                              </span>
-                            </td>
-
-                            <td>
-                              {new Date(
-                                user.created_at
-                              ).toLocaleDateString()}
-                            </td>
-
-                            <td>
-                              {user.id ===
-                              profile.id ? (
-                                <span className="current-user">
-                                  Current
-                                  Admin
-                                </span>
-                              ) : (
-                                <button
-                                  className="role-button"
-                                  onClick={() =>
-                                    changeRole(
-                                      user.id,
-                                      user.role ===
-                                        'admin'
-                                        ? 'user'
-                                        : 'admin'
-                                    )
-                                  }
-                                >
-                                  {user.role ===
-                                  'admin'
-                                    ? 'Make User'
-                                    : 'Make Admin'}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        )
-                      )}
+                                {user.role === 'admin'
+                                  ? 'Make User'
+                                  : 'Make Admin'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-              )}
+                )}
+              </div>
 
               {message && (
                 <p className="message">
@@ -1148,8 +991,7 @@ function App() {
               TOOLS
           ========================= */}
 
-          {activePage ===
-            'tools' && (
+          {activePage === 'tools' && (
             <>
               <section className="panel-card">
                 <div className="panel-header">
@@ -1159,20 +1001,15 @@ function App() {
                     </h2>
 
                     <p>
-                      Add, edit and manage
-                      website tools
+                      Add, edit and manage your website tools
                     </p>
                   </div>
 
                   <div className="tools-actions">
                     <button
                       className="refresh-button"
-                      onClick={
-                        loadTools
-                      }
-                      disabled={
-                        toolsLoading
-                      }
+                      onClick={loadTools}
+                      disabled={toolsLoading}
                     >
                       {toolsLoading
                         ? 'Loading...'
@@ -1181,9 +1018,7 @@ function App() {
 
                     <button
                       className="add-tool-button"
-                      onClick={
-                        openAddTool
-                      }
+                      onClick={openAddTool}
                     >
                       + Add Tool
                     </button>
@@ -1193,9 +1028,7 @@ function App() {
                 {showToolForm && (
                   <form
                     className="tool-form"
-                    onSubmit={
-                      saveTool
-                    }
+                    onSubmit={saveTool}
                   >
                     <div className="tool-form-header">
                       <div>
@@ -1206,17 +1039,14 @@ function App() {
                         </h3>
 
                         <p>
-                          Enter tool
-                          information
+                          Enter the tool information below.
                         </p>
                       </div>
 
                       <button
                         type="button"
                         className="close-button"
-                        onClick={
-                          closeToolForm
-                        }
+                        onClick={closeToolForm}
                       >
                         ✕
                       </button>
@@ -1230,17 +1060,9 @@ function App() {
 
                         <input
                           id="toolName"
-                          value={
-                            toolName
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            setToolName(
-                              event
-                                .target
-                                .value
-                            )
+                          value={toolName}
+                          onChange={(e) =>
+                            setToolName(e.target.value)
                           }
                           placeholder="Example: Image Compressor"
                           required
@@ -1254,17 +1076,9 @@ function App() {
 
                         <input
                           id="toolIcon"
-                          value={
-                            toolIcon
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            setToolIcon(
-                              event
-                                .target
-                                .value
-                            )
+                          value={toolIcon}
+                          onChange={(e) =>
+                            setToolIcon(e.target.value)
                           }
                           placeholder="🛠️"
                         />
@@ -1278,17 +1092,9 @@ function App() {
                         <input
                           id="toolUrl"
                           type="url"
-                          value={
-                            toolUrl
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            setToolUrl(
-                              event
-                                .target
-                                .value
-                            )
+                          value={toolUrl}
+                          onChange={(e) =>
+                            setToolUrl(e.target.value)
                           }
                           placeholder="https://example.com"
                           required
@@ -1302,16 +1108,10 @@ function App() {
 
                         <textarea
                           id="toolDescription"
-                          value={
-                            toolDescription
-                          }
-                          onChange={(
-                            event
-                          ) =>
+                          value={toolDescription}
+                          onChange={(e) =>
                             setToolDescription(
-                              event
-                                .target
-                                .value
+                              e.target.value
                             )
                           }
                           placeholder="Describe what this tool does..."
@@ -1321,16 +1121,10 @@ function App() {
                       <label className="active-toggle">
                         <input
                           type="checkbox"
-                          checked={
-                            toolActive
-                          }
-                          onChange={(
-                            event
-                          ) =>
+                          checked={toolActive}
+                          onChange={(e) =>
                             setToolActive(
-                              event
-                                .target
-                                .checked
+                              e.target.checked
                             )
                           }
                         />
@@ -1343,9 +1137,7 @@ function App() {
                       <button
                         type="button"
                         className="cancel-button"
-                        onClick={
-                          closeToolForm
-                        }
+                        onClick={closeToolForm}
                       >
                         Cancel
                       </button>
@@ -1353,9 +1145,7 @@ function App() {
                       <button
                         type="submit"
                         className="save-tool-button"
-                        disabled={
-                          savingTool
-                        }
+                        disabled={savingTool}
                       >
                         {savingTool
                           ? 'Saving...'
@@ -1382,10 +1172,8 @@ function App() {
                     </h2>
 
                     <p>
-                      {tools.length}{' '}
-                      total tool
-                      {tools.length ===
-                      1
+                      {tools.length} total tool
+                      {tools.length === 1
                         ? ''
                         : 's'}
                     </p>
@@ -1396,17 +1184,9 @@ function App() {
                   <input
                     type="search"
                     placeholder="🔍 Search tools..."
-                    value={
-                      toolSearch
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      setToolSearch(
-                        event
-                          .target
-                          .value
-                      )
+                    value={toolSearch}
+                    onChange={(e) =>
+                      setToolSearch(e.target.value)
                     }
                   />
                 </div>
@@ -1421,121 +1201,103 @@ function App() {
                       Please wait.
                     </p>
                   </div>
-                ) : filteredTools.length ===
-                  0 ? (
+                ) : filteredTools.length === 0 ? (
                   <div className="empty-tools">
                     <div className="empty-icon">
                       🛠️
                     </div>
 
                     <h3>
-                      {tools.length ===
-                      0
+                      {tools.length === 0
                         ? 'No tools yet'
                         : 'No matching tools'}
                     </h3>
 
                     <p>
-                      {tools.length ===
-                      0
+                      {tools.length === 0
                         ? 'Click "Add Tool" to create your first tool.'
                         : 'Try a different search.'}
                     </p>
                   </div>
                 ) : (
                   <div className="tools-grid">
-                    {filteredTools.map(
-                      (tool) => (
-                        <div
-                          key={
-                            tool.id
-                          }
-                          className={
-                            tool.is_active
-                              ? 'tool-admin-card'
-                              : 'tool-admin-card inactive'
-                          }
-                        >
-                          <div className="tool-card-top">
-                            <div className="tool-card-icon">
-                              {tool.icon ||
-                                '🛠️'}
-                            </div>
-
-                            <span
-                              className={
-                                tool.is_active
-                                  ? 'tool-status active-status'
-                                  : 'tool-status inactive-status'
-                              }
-                            >
-                              {tool.is_active
-                                ? 'Active'
-                                : 'Inactive'}
-                            </span>
+                    {filteredTools.map((tool) => (
+                      <div
+                        key={tool.id}
+                        className={
+                          tool.is_active
+                            ? 'tool-admin-card'
+                            : 'tool-admin-card inactive'
+                        }
+                      >
+                        <div className="tool-card-top">
+                          <div className="tool-card-icon">
+                            {tool.icon || '🛠️'}
                           </div>
 
-                          <h3>
-                            {
-                              tool.name
+                          <span
+                            className={
+                              tool.is_active
+                                ? 'tool-status active-status'
+                                : 'tool-status inactive-status'
                             }
-                          </h3>
-
-                          <p>
-                            {tool.description ||
-                              'No description provided.'}
-                          </p>
-
-                          <a
-                            href={
-                              tool.url
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="tool-url"
                           >
-                            Open Tool ↗
-                          </a>
-
-                          <div className="tool-card-actions">
-                            <button
-                              className="edit-tool-button"
-                              onClick={() =>
-                                openEditTool(
-                                  tool
-                                )
-                              }
-                            >
-                              ✏️ Edit
-                            </button>
-
-                            <button
-                              className="toggle-tool-button"
-                              onClick={() =>
-                                toggleTool(
-                                  tool
-                                )
-                              }
-                            >
-                              {tool.is_active
-                                ? '⏸️ Disable'
-                                : '▶️ Enable'}
-                            </button>
-
-                            <button
-                              className="delete-tool-button"
-                              onClick={() =>
-                                deleteTool(
-                                  tool.id
-                                )
-                              }
-                            >
-                              🗑️ Delete
-                            </button>
-                          </div>
+                            {tool.is_active
+                              ? 'Active'
+                              : 'Inactive'}
+                          </span>
                         </div>
-                      )
-                    )}
+
+                        <h3>
+                          {tool.name}
+                        </h3>
+
+                        <p>
+                          {tool.description ||
+                            'No description provided.'}
+                        </p>
+
+                        <a
+                          href={tool.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tool-url"
+                        >
+                          Open Tool ↗
+                        </a>
+
+                        <div className="tool-card-actions">
+                          <button
+                            className="edit-tool-button"
+                            onClick={() =>
+                              openEditTool(tool)
+                            }
+                          >
+                            ✏️ Edit
+                          </button>
+
+                          <button
+                            className="toggle-tool-button"
+                            onClick={() =>
+                              toggleTool(tool)
+                            }
+                          >
+                            {tool.is_active
+                              ? '⏸️ Disable'
+                              : '▶️ Enable'}
+                          </button>
+
+                          <button
+                            className="delete-tool-button"
+                            onClick={() =>
+                              deleteTool(tool.id)
+                            }
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </section>
@@ -1546,8 +1308,7 @@ function App() {
               STATISTICS
           ========================= */}
 
-          {activePage ===
-            'statistics' && (
+          {activePage === 'statistics' && (
             <section className="statistics-page">
               <div className="panel-card statistics-intro">
                 <div>
@@ -1556,8 +1317,7 @@ function App() {
                   </h2>
 
                   <p>
-                    Overview of users
-                    and tools.
+                    Overview of your users and tools.
                   </p>
                 </div>
 
@@ -1572,12 +1332,10 @@ function App() {
                     )
                   }}
                   disabled={
-                    usersLoading ||
-                    toolsLoading
+                    usersLoading || toolsLoading
                   }
                 >
-                  {usersLoading ||
-                  toolsLoading
+                  {usersLoading || toolsLoading
                     ? 'Loading...'
                     : '↻ Refresh'}
                 </button>
@@ -1658,8 +1416,7 @@ function App() {
                       </h2>
 
                       <p>
-                        Current tool
-                        status
+                        Current tool status
                       </p>
                     </div>
                   </div>
@@ -1671,9 +1428,7 @@ function App() {
                       </span>
 
                       <strong className="stat-green">
-                        {
-                          activeTools
-                        }
+                        {activeTools}
                       </strong>
                     </div>
 
@@ -1683,9 +1438,7 @@ function App() {
                       </span>
 
                       <strong className="stat-red">
-                        {
-                          inactiveTools
-                        }
+                        {inactiveTools}
                       </strong>
                     </div>
 
@@ -1695,9 +1448,7 @@ function App() {
                       </span>
 
                       <strong>
-                        {
-                          tools.length
-                        }
+                        {tools.length}
                       </strong>
                     </div>
                   </div>
@@ -1711,8 +1462,7 @@ function App() {
                       </h2>
 
                       <p>
-                        Current user
-                        roles
+                        Current user roles
                       </p>
                     </div>
                   </div>
@@ -1724,9 +1474,7 @@ function App() {
                       </span>
 
                       <strong className="stat-purple">
-                        {
-                          totalAdmins
-                        }
+                        {totalAdmins}
                       </strong>
                     </div>
 
@@ -1736,9 +1484,7 @@ function App() {
                       </span>
 
                       <strong className="stat-green">
-                        {
-                          normalUsers
-                        }
+                        {normalUsers}
                       </strong>
                     </div>
 
@@ -1748,9 +1494,7 @@ function App() {
                       </span>
 
                       <strong>
-                        {
-                          totalUsers
-                        }
+                        {totalUsers}
                       </strong>
                     </div>
                   </div>
@@ -1769,8 +1513,7 @@ function App() {
               SETTINGS
           ========================= */}
 
-          {activePage ===
-            'settings' && (
+          {activePage === 'settings' && (
             <section className="panel-card empty-panel">
               <div className="empty-icon">
                 ⚙️
@@ -1781,13 +1524,7 @@ function App() {
               </h2>
 
               <p>
-                Your admin settings
-                section is ready.
-              </p>
-
-              <p>
-                More settings can be
-                added here later.
+                Admin settings will be added here.
               </p>
             </section>
           )}
@@ -1796,9 +1533,9 @@ function App() {
     )
   }
 
-  /* =========================
-     LOGIN SCREEN
-  ========================= */
+  // =========================
+  // LOGIN / SIGNUP
+  // =========================
 
   return (
     <main className="auth-container">
@@ -1823,11 +1560,7 @@ function App() {
                 ? 'active'
                 : ''
             }
-            onClick={() => {
-              setIsAdminLogin(false)
-              setIsSignup(false)
-              setMessage('')
-            }}
+            onClick={switchToUserLogin}
           >
             User Login
           </button>
@@ -1839,11 +1572,7 @@ function App() {
                 ? 'active'
                 : ''
             }
-            onClick={() => {
-              setIsAdminLogin(true)
-              setIsSignup(false)
-              setMessage('')
-            }}
+            onClick={switchToAdminLogin}
           >
             Admin Login
           </button>
@@ -1853,12 +1582,7 @@ function App() {
           <button
             type="button"
             className="signup-toggle"
-            onClick={() => {
-              setIsSignup(
-                !isSignup
-              )
-              setMessage('')
-            }}
+            onClick={toggleSignup}
           >
             {isSignup
               ? 'Already have an account? Login'
@@ -1866,9 +1590,7 @@ function App() {
           </button>
         )}
 
-        <form
-          onSubmit={handleAuth}
-        >
+        <form onSubmit={handleAuth}>
           <label htmlFor="email">
             Email
           </label>
@@ -1878,36 +1600,91 @@ function App() {
             type="email"
             placeholder="Enter email"
             value={email}
-            onChange={(event) =>
-              setEmail(
-                event.target.value
-              )
+            onChange={(e) =>
+              setEmail(e.target.value)
             }
             required
           />
 
           <label htmlFor="password">
-            Password
+            {isSignup
+              ? 'New Password'
+              : 'Password'}
           </label>
 
           <input
             id="password"
             type="password"
-            placeholder="Enter password"
+            placeholder={
+              isSignup
+                ? 'Enter new password'
+                : 'Enter password'
+            }
             value={password}
-            onChange={(event) =>
-              setPassword(
-                event.target.value
-              )
+            onChange={(e) =>
+              setPassword(e.target.value)
             }
             minLength={6}
             required
           />
 
+          {isSignup && (
+            <>
+              <label htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+
+              <input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) =>
+                  setConfirmPassword(
+                    e.target.value
+                  )
+                }
+                minLength={6}
+                required
+              />
+
+              {confirmPassword &&
+                password !== confirmPassword && (
+                  <p
+                    style={{
+                      color: '#f87171',
+                      fontSize: '13px',
+                      marginTop: '7px',
+                    }}
+                  >
+                    Passwords do not match.
+                  </p>
+                )}
+
+              {confirmPassword &&
+                password === confirmPassword && (
+                  <p
+                    style={{
+                      color: '#4ade80',
+                      fontSize: '13px',
+                      marginTop: '7px',
+                    }}
+                  >
+                    Passwords match ✓
+                  </p>
+                )}
+            </>
+          )}
+
           <button
             type="submit"
             className="submit-button"
-            disabled={loading}
+            disabled={
+              loading ||
+              (isSignup &&
+                !!confirmPassword &&
+                password !== confirmPassword)
+            }
           >
             {loading
               ? 'Please wait...'
