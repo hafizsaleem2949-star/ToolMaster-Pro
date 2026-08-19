@@ -20,13 +20,6 @@ type Tool = {
   created_at: string
 }
 
-type Page =
-  | 'dashboard'
-  | 'users'
-  | 'tools'
-  | 'statistics'
-  | 'settings'
-
 function App() {
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -45,36 +38,29 @@ function App() {
   const [isSignup, setIsSignup] = useState(false)
   const [isAdminLogin, setIsAdminLogin] = useState(false)
 
-  const [activePage, setActivePage] =
-    useState<Page>('dashboard')
-
+  const [activePage, setActivePage] = useState('dashboard')
   const [message, setMessage] = useState('')
 
   const [showToolForm, setShowToolForm] = useState(false)
-  const [editingToolId, setEditingToolId] =
-    useState<string | null>(null)
-
+  const [editingToolId, setEditingToolId] = useState<string | null>(null)
   const [toolSearch, setToolSearch] = useState('')
 
   const [toolName, setToolName] = useState('')
-  const [toolDescription, setToolDescription] =
-    useState('')
+  const [toolDescription, setToolDescription] = useState('')
   const [toolUrl, setToolUrl] = useState('')
   const [toolIcon, setToolIcon] = useState('🛠️')
   const [toolActive, setToolActive] = useState(true)
 
-  /*
-   * =========================
-   * AUTH INITIALIZATION
-   * =========================
-   */
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     let mounted = true
 
     async function start() {
-      const { data, error } =
-        await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getSession()
 
       if (!mounted) return
 
@@ -103,23 +89,17 @@ function App() {
 
         setSession(currentSession)
 
-        if (
-          event === 'SIGNED_OUT' ||
-          !currentSession
-        ) {
+        if (event === 'SIGNED_OUT' || !currentSession) {
           setProfile(null)
           setUsers([])
           setTools([])
-          setActivePage('dashboard')
           setLoading(false)
           return
         }
 
         setTimeout(() => {
           if (mounted && currentSession) {
-            loadProfile(
-              currentSession.user.id
-            )
+            loadProfile(currentSession.user.id)
           }
         }, 0)
       }
@@ -131,18 +111,10 @@ function App() {
     }
   }, [])
 
-  /*
-   * =========================
-   * LOAD PROFILE
-   * =========================
-   */
-
   async function loadProfile(userId: string) {
     const { data, error } = await supabase
       .from('profiles')
-      .select(
-        'id, email, role, created_at'
-      )
+      .select('id, email, role, created_at')
       .eq('id', userId)
       .maybeSingle()
 
@@ -154,9 +126,7 @@ function App() {
     }
 
     if (!data) {
-      setMessage(
-        'Profile not found. Please contact administrator.'
-      )
+      setMessage('Profile not found. Please contact administrator.')
       setProfile(null)
       setLoading(false)
       return
@@ -173,52 +143,49 @@ function App() {
     setLoading(false)
   }
 
-  /*
-   * =========================
-   * USERS
-   * =========================
-   */
-
   async function loadUsers() {
     setUsersLoading(true)
 
     const { data, error } = await supabase
       .from('profiles')
-      .select(
-        'id, email, role, created_at'
-      )
-      .order('created_at', {
-        ascending: false,
-      })
+      .select('id, email, role, created_at')
+      .order('created_at', { ascending: false })
 
     if (error) {
       setMessage(error.message)
       setUsers([])
     } else {
-      setUsers(
-        (data || []) as Profile[]
-      )
+      setUsers((data || []) as Profile[])
     }
 
     setUsersLoading(false)
+  }
+
+  async function loadTools() {
+    setToolsLoading(true)
+
+    const { data, error } = await supabase
+      .from('tools')
+      .select('id, name, description, url, icon, is_active, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      setMessage(error.message)
+      setTools([])
+    } else {
+      setTools((data || []) as Tool[])
+    }
+
+    setToolsLoading(false)
   }
 
   async function changeRole(
     userId: string,
     newRole: 'user' | 'admin'
   ) {
-    if (!profile || profile.role !== 'admin') {
-      setMessage(
-        'Only administrators can change roles.'
-      )
-      return
-    }
-
     const { error } = await supabase
       .from('profiles')
-      .update({
-        role: newRole,
-      })
+      .update({ role: newRole })
       .eq('id', userId)
 
     if (error) {
@@ -226,43 +193,8 @@ function App() {
       return
     }
 
-    setMessage(
-      newRole === 'admin'
-        ? 'User promoted to administrator.'
-        : 'Administrator changed to normal user.'
-    )
-
+    setMessage('Role updated successfully.')
     await loadUsers()
-  }
-
-  /*
-   * =========================
-   * TOOLS
-   * =========================
-   */
-
-  async function loadTools() {
-    setToolsLoading(true)
-
-    const { data, error } = await supabase
-      .from('tools')
-      .select(
-        'id, name, description, url, icon, is_active, created_at'
-      )
-      .order('created_at', {
-        ascending: false,
-      })
-
-    if (error) {
-      setMessage(error.message)
-      setTools([])
-    } else {
-      setTools(
-        (data || []) as Tool[]
-      )
-    }
-
-    setToolsLoading(false)
   }
 
   function resetToolForm() {
@@ -283,13 +215,9 @@ function App() {
   function openEditTool(tool: Tool) {
     setEditingToolId(tool.id)
     setToolName(tool.name)
-    setToolDescription(
-      tool.description || ''
-    )
+    setToolDescription(tool.description || '')
     setToolUrl(tool.url)
-    setToolIcon(
-      tool.icon || '🛠️'
-    )
+    setToolIcon(tool.icon || '🛠️')
     setToolActive(tool.is_active)
     setShowToolForm(true)
     setMessage('')
@@ -300,25 +228,11 @@ function App() {
     setShowToolForm(false)
   }
 
-  async function saveTool(
-    e: FormEvent<HTMLFormElement>
-  ) {
+  async function saveTool(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    if (!profile || profile.role !== 'admin') {
-      setMessage(
-        'Only administrators can manage tools.'
-      )
-      return
-    }
-
-    if (
-      !toolName.trim() ||
-      !toolUrl.trim()
-    ) {
-      setMessage(
-        'Tool name and URL are required.'
-      )
+    if (!toolName.trim() || !toolUrl.trim()) {
+      setMessage('Tool name and URL are required.')
       return
     }
 
@@ -327,11 +241,9 @@ function App() {
 
     const toolData = {
       name: toolName.trim(),
-      description:
-        toolDescription.trim() || null,
+      description: toolDescription.trim(),
       url: toolUrl.trim(),
-      icon:
-        toolIcon.trim() || '🛠️',
+      icon: toolIcon.trim() || '🛠️',
       is_active: toolActive,
     }
 
@@ -347,9 +259,7 @@ function App() {
         return
       }
 
-      setMessage(
-        'Tool updated successfully.'
-      )
+      setMessage('Tool updated successfully.')
     } else {
       const { error } = await supabase
         .from('tools')
@@ -361,25 +271,15 @@ function App() {
         return
       }
 
-      setMessage(
-        'Tool added successfully.'
-      )
+      setMessage('Tool added successfully.')
     }
 
     closeToolForm()
     await loadTools()
-
     setSavingTool(false)
   }
 
   async function toggleTool(tool: Tool) {
-    if (!profile || profile.role !== 'admin') {
-      setMessage(
-        'Only administrators can change tool status.'
-      )
-      return
-    }
-
     const { error } = await supabase
       .from('tools')
       .update({
@@ -394,27 +294,17 @@ function App() {
 
     setMessage(
       tool.is_active
-        ? 'Tool disabled.'
-        : 'Tool enabled.'
+        ? 'Tool deactivated.'
+        : 'Tool activated.'
     )
 
     await loadTools()
   }
 
-  async function deleteTool(
-    toolId: string
-  ) {
-    if (!profile || profile.role !== 'admin') {
-      setMessage(
-        'Only administrators can delete tools.'
-      )
-      return
-    }
-
-    const confirmed =
-      window.confirm(
-        'Are you sure you want to delete this tool?'
-      )
+  async function deleteTool(toolId: string) {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this tool?'
+    )
 
     if (!confirmed) return
 
@@ -428,33 +318,21 @@ function App() {
       return
     }
 
-    setMessage(
-      'Tool deleted successfully.'
-    )
-
+    setMessage('Tool deleted successfully.')
     await loadTools()
   }
 
-  /*
-   * =========================
-   * AUTH
-   * =========================
-   */
-
-  async function handleAuth(
-    e: FormEvent<HTMLFormElement>
-  ) {
+  async function handleAuth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     setMessage('')
     setLoading(true)
 
     if (isSignup) {
-      const { data, error } =
-        await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
 
       if (error) {
         setMessage(error.message)
@@ -463,9 +341,7 @@ function App() {
       }
 
       if (data.session) {
-        await loadProfile(
-          data.session.user.id
-        )
+        await loadProfile(data.session.user.id)
       } else {
         setMessage(
           'Account created. Please verify your email, then login.'
@@ -478,7 +354,7 @@ function App() {
 
     const { data, error } =
       await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email,
         password,
       })
 
@@ -489,18 +365,55 @@ function App() {
     }
 
     if (!data.session) {
-      setMessage(
-        'Login successful, but no session was created.'
-      )
+      setMessage('Login successful, but no session was created.')
       setLoading(false)
       return
     }
 
     setSession(data.session)
+    await loadProfile(data.session.user.id)
+  }
 
-    await loadProfile(
-      data.session.user.id
+  async function changePassword() {
+    setPasswordMessage('')
+
+    if (!newPassword || !confirmPassword) {
+      setPasswordMessage(
+        'Please enter both password fields.'
+      )
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMessage(
+        'Password must be at least 6 characters.'
+      )
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage('Passwords do not match.')
+      return
+    }
+
+    setPasswordLoading(true)
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    })
+
+    if (error) {
+      setPasswordMessage(error.message)
+      setPasswordLoading(false)
+      return
+    }
+
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordMessage(
+      'Password changed successfully. ✅'
     )
+    setPasswordLoading(false)
   }
 
   async function logout() {
@@ -514,114 +427,47 @@ function App() {
     setEmail('')
     setPassword('')
     setMessage('')
+    setPasswordMessage('')
+    setNewPassword('')
+    setConfirmPassword('')
     setActivePage('dashboard')
 
     closeToolForm()
   }
 
-  /*
-   * =========================
-   * CHANGE PASSWORD
-   * =========================
-   */
+  const totalUsers = users.length
 
-  async function changePassword() {
-    const newPassword =
-      window.prompt(
-        'Enter new password (minimum 6 characters):'
-      )
+  const totalAdmins = users.filter(
+    (user) => user.role === 'admin'
+  ).length
 
-    if (!newPassword) return
+  const normalUsers = users.filter(
+    (user) => user.role === 'user'
+  ).length
 
-    if (newPassword.length < 6) {
-      setMessage(
-        'Password must be at least 6 characters.'
-      )
-      return
-    }
-
-    const { error } =
-      await supabase.auth.updateUser({
-        password: newPassword,
-      })
-
-    if (error) {
-      setMessage(error.message)
-      return
-    }
-
-    setMessage(
-      'Password changed successfully.'
-    )
-  }
-
-  /*
-   * =========================
-   * STATISTICS
-   * =========================
-   */
-
-  const totalUsers =
-    users.length
-
-  const totalAdmins =
-    users.filter(
-      (user) =>
-        user.role === 'admin'
-    ).length
-
-  const normalUsers =
-    users.filter(
-      (user) =>
-        user.role === 'user'
-    ).length
-
-  const activeTools =
-    tools.filter(
-      (tool) =>
-        tool.is_active
-    ).length
+  const activeTools = tools.filter(
+    (tool) => tool.is_active
+  ).length
 
   const inactiveTools =
-    tools.length -
-    activeTools
+    tools.length - activeTools
 
-  const filteredTools =
-    tools.filter((tool) => {
-      const search =
-        toolSearch
-          .toLowerCase()
-          .trim()
+  const filteredTools = tools.filter((tool) => {
+    const search = toolSearch.toLowerCase()
 
-      if (!search) return true
-
-      return (
-        tool.name
-          .toLowerCase()
-          .includes(search) ||
-        (
-          tool.description ||
-          ''
-        )
-          .toLowerCase()
-          .includes(search)
-      )
-    })
-
-  /*
-   * =========================
-   * LOADING
-   * =========================
-   */
+    return (
+      tool.name.toLowerCase().includes(search) ||
+      (tool.description || '')
+        .toLowerCase()
+        .includes(search)
+    )
+  })
 
   if (loading) {
     return (
       <main className="auth-container">
         <div className="auth-card">
-          <h2>
-            Loading...
-          </h2>
-
+          <h2>Loading...</h2>
           <p className="subtitle">
             Please wait
           </p>
@@ -630,70 +476,42 @@ function App() {
     )
   }
 
-  /*
-   * =========================
-   * USER DASHBOARD
-   * =========================
-   */
-
-  if (
-    session &&
-    profile &&
-    profile.role !== 'admin'
-  ) {
-    const userTools =
-      tools.filter(
-        (tool) =>
-          tool.is_active
+  if (session && profile) {
+    if (profile.role !== 'admin') {
+      const userTools = tools.filter(
+        (tool) => tool.is_active
       )
 
-    return (
-      <main className="user-dashboard">
-        <div className="user-card">
+      return (
+        <main className="user-dashboard">
+          <div className="user-card">
+            <div className="user-topbar">
+              <div>
+                <h1>ToolMaster Pro</h1>
+                <p>{profile.email}</p>
+              </div>
 
-          <div className="user-topbar">
-            <div>
-              <h1>
-                ToolMaster Pro
-              </h1>
-
-              <p>
-                {profile.email}
-              </p>
+              <button onClick={logout}>
+                Logout
+              </button>
             </div>
 
-            <button
-              onClick={logout}
-            >
-              Logout
-            </button>
-          </div>
+            <h2>Welcome 👋</h2>
 
-          <h2>
-            Welcome 👋
-          </h2>
+            <p>
+              You have successfully logged in.
+            </p>
 
-          <p>
-            You have successfully
-            logged in.
-          </p>
+            <div className="user-tools-box">
+              <h3>Your Tools</h3>
 
-          <div className="user-tools-box">
-
-            <h3>
-              Available Tools
-            </h3>
-
-            {userTools.length === 0 ? (
-              <p>
-                No tools are currently
-                available.
-              </p>
-            ) : (
-              <div className="user-tools-grid">
-
-                {userTools.map(
-                  (tool) => (
+              {userTools.length === 0 ? (
+                <p>
+                  No tools are currently available.
+                </p>
+              ) : (
+                <div className="user-tools-grid">
+                  {userTools.map((tool) => (
                     <a
                       key={tool.id}
                       href={tool.url}
@@ -702,14 +520,11 @@ function App() {
                       className="user-tool-card"
                     >
                       <div className="user-tool-icon">
-                        {tool.icon ||
-                          '🛠️'}
+                        {tool.icon || '🛠️'}
                       </div>
 
                       <div>
-                        <h4>
-                          {tool.name}
-                        </h4>
+                        <h4>{tool.name}</h4>
 
                         <p>
                           {tool.description ||
@@ -717,64 +532,38 @@ function App() {
                         </p>
                       </div>
                     </a>
-                  )
-                )}
-
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
-    )
-  }
+        </main>
+      )
+    }
 
-  /*
-   * =========================
-   * ADMIN DASHBOARD
-   * =========================
-   */
-
-  if (
-    session &&
-    profile &&
-    profile.role === 'admin'
-  ) {
     return (
       <div className="admin-layout">
-
         <aside className="sidebar">
-
           <div className="brand">
-
             <div className="brand-icon">
               TM
             </div>
 
             <div>
-              <h2>
-                ToolMaster
-              </h2>
-
-              <span>
-                Admin Panel
-              </span>
+              <h2>ToolMaster</h2>
+              <span>Admin Panel</span>
             </div>
-
           </div>
 
           <nav>
-
             <button
               className={
-                activePage ===
-                'dashboard'
+                activePage === 'dashboard'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'dashboard'
-                )
+                setActivePage('dashboard')
               }
             >
               🏠 Dashboard
@@ -782,15 +571,12 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'users'
+                activePage === 'users'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'users'
-                )
+                setActivePage('users')
               }
             >
               👥 Users
@@ -798,15 +584,12 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'tools'
+                activePage === 'tools'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'tools'
-                )
+                setActivePage('tools')
               }
             >
               🛠️ Tools
@@ -814,15 +597,12 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'statistics'
+                activePage === 'statistics'
                   ? 'nav-item active'
                   : 'nav-item'
               }
               onClick={() =>
-                setActivePage(
-                  'statistics'
-                )
+                setActivePage('statistics')
               }
             >
               📊 Statistics
@@ -830,20 +610,17 @@ function App() {
 
             <button
               className={
-                activePage ===
-                'settings'
+                activePage === 'settings'
                   ? 'nav-item active'
                   : 'nav-item'
               }
-              onClick={() =>
-                setActivePage(
-                  'settings'
-                )
-              }
+              onClick={() => {
+                setActivePage('settings')
+                setPasswordMessage('')
+              }}
             >
               ⚙️ Settings
             </button>
-
           </nav>
 
           <button
@@ -852,90 +629,60 @@ function App() {
           >
             🚪 Logout
           </button>
-
         </aside>
 
         <main className="admin-main">
-
           <header className="admin-header">
-
             <div>
-
               <h1>
-                {activePage ===
-                  'dashboard' &&
+                {activePage === 'dashboard' &&
                   'Dashboard'}
 
-                {activePage ===
-                  'users' &&
+                {activePage === 'users' &&
                   'User Management'}
 
-                {activePage ===
-                  'tools' &&
+                {activePage === 'tools' &&
                   'Tools Management'}
 
-                {activePage ===
-                  'statistics' &&
+                {activePage === 'statistics' &&
                   'Statistics'}
 
-                {activePage ===
-                  'settings' &&
+                {activePage === 'settings' &&
                   'Settings'}
               </h1>
 
               <p>
-                Welcome back,{' '}
-                {profile.email}
+                Welcome back, {profile.email}
               </p>
-
             </div>
 
             <div className="admin-profile">
-
               <div className="avatar">
                 A
               </div>
 
               <div>
-
                 <strong>
                   Administrator
                 </strong>
 
-                <span>
-                  Admin
-                </span>
-
+                <span>Admin</span>
               </div>
-
             </div>
-
           </header>
 
-          {/*
-           * =========================
-           * DASHBOARD
-           * =========================
-           */}
-
-          {activePage ===
-            'dashboard' && (
+          {/* DASHBOARD */}
+          {activePage === 'dashboard' && (
             <>
               <div className="stats-grid">
-
                 <div className="stat-card blue">
                   <div className="stat-icon">
                     👥
                   </div>
 
                   <div>
-                    <span>
-                      Total Users
-                    </span>
-
-                    <strong>
-                      {totalUsers}
-                    </strong>
+                    <span>Total Users</span>
+                    <strong>{totalUsers}</strong>
                   </div>
                 </div>
 
@@ -945,13 +692,8 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Total Admins
-                    </span>
-
-                    <strong>
-                      {totalAdmins}
-                    </strong>
+                    <span>Total Admins</span>
+                    <strong>{totalAdmins}</strong>
                   </div>
                 </div>
 
@@ -961,13 +703,8 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Normal Users
-                    </span>
-
-                    <strong>
-                      {normalUsers}
-                    </strong>
+                    <span>Normal Users</span>
+                    <strong>{normalUsers}</strong>
                   </div>
                 </div>
 
@@ -977,270 +714,176 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Active Tools
-                    </span>
-
-                    <strong>
-                      {activeTools}
-                    </strong>
+                    <span>Active Tools</span>
+                    <strong>{activeTools}</strong>
                   </div>
                 </div>
-
               </div>
 
               <section className="panel-card">
-
                 <div className="panel-header">
-
                   <div>
-                    <h2>
-                      Recent Users
-                    </h2>
+                    <h2>Recent Users</h2>
 
                     <p>
-                      Latest registered
-                      users
+                      Latest registered users
                     </p>
                   </div>
 
                   <button
                     className="refresh-button"
-                    onClick={
-                      loadUsers
-                    }
-                    disabled={
-                      usersLoading
-                    }
+                    onClick={loadUsers}
+                    disabled={usersLoading}
                   >
                     {usersLoading
                       ? 'Loading...'
                       : '↻ Refresh'}
                   </button>
-
                 </div>
 
                 <div className="users-table-wrapper">
-
-                  {users.length ===
-                  0 ? (
-                    <p>
-                      No users found.
-                    </p>
+                  {users.length === 0 ? (
+                    <p>No users found.</p>
                   ) : (
                     <table className="users-table">
-
                       <thead>
                         <tr>
-                          <th>
-                            Email
-                          </th>
-
-                          <th>
-                            Role
-                          </th>
-
-                          <th>
-                            Created
-                          </th>
+                          <th>Email</th>
+                          <th>Role</th>
+                          <th>Created</th>
                         </tr>
                       </thead>
 
                       <tbody>
-
                         {users
                           .slice(0, 5)
-                          .map(
-                            (user) => (
-                              <tr
-                                key={
-                                  user.id
-                                }
-                              >
-                                <td>
-                                  {user.email ||
-                                    'No email'}
-                                </td>
+                          .map((user) => (
+                            <tr key={user.id}>
+                              <td>
+                                {user.email ||
+                                  'No email'}
+                              </td>
 
-                                <td>
-                                  <span
-                                    className={
-                                      user.role ===
-                                      'admin'
-                                        ? 'role admin-role'
-                                        : 'role user-role'
-                                    }
-                                  >
-                                    {
-                                      user.role
-                                    }
-                                  </span>
-                                </td>
+                              <td>
+                                <span
+                                  className={
+                                    user.role ===
+                                    'admin'
+                                      ? 'role admin-role'
+                                      : 'role user-role'
+                                  }
+                                >
+                                  {user.role}
+                                </span>
+                              </td>
 
-                                <td>
-                                  {new Date(
-                                    user.created_at
-                                  ).toLocaleDateString()}
-                                </td>
-                              </tr>
-                            )
-                          )}
-
+                              <td>
+                                {new Date(
+                                  user.created_at
+                                ).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
-
                     </table>
                   )}
-
                 </div>
-
               </section>
             </>
           )}
 
-          {/*
-           * =========================
-           * USERS
-           * =========================
-           */}
-
-          {activePage ===
-            'users' && (
+          {/* USERS */}
+          {activePage === 'users' && (
             <section className="panel-card">
-
               <div className="panel-header">
-
                 <div>
-                  <h2>
-                    All Users
-                  </h2>
+                  <h2>All Users</h2>
 
                   <p>
-                    Manage user accounts
-                    and permissions
+                    Manage user accounts and permissions
                   </p>
                 </div>
 
                 <button
                   className="refresh-button"
-                  onClick={
-                    loadUsers
-                  }
-                  disabled={
-                    usersLoading
-                  }
+                  onClick={loadUsers}
+                  disabled={usersLoading}
                 >
                   {usersLoading
                     ? 'Loading...'
                     : '↻ Refresh'}
                 </button>
-
               </div>
 
               <div className="users-table-wrapper">
-
-                {users.length ===
-                0 ? (
-                  <p>
-                    No users found.
-                  </p>
+                {users.length === 0 ? (
+                  <p>No users found.</p>
                 ) : (
                   <table className="users-table">
-
                     <thead>
                       <tr>
-                        <th>
-                          Email
-                        </th>
-
-                        <th>
-                          Role
-                        </th>
-
-                        <th>
-                          Created
-                        </th>
-
-                        <th>
-                          Action
-                        </th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
 
                     <tbody>
+                      {users.map((user) => (
+                        <tr key={user.id}>
+                          <td>
+                            {user.email ||
+                              'No email'}
+                          </td>
 
-                      {users.map(
-                        (user) => (
-                          <tr
-                            key={
-                              user.id
-                            }
-                          >
+                          <td>
+                            <span
+                              className={
+                                user.role === 'admin'
+                                  ? 'role admin-role'
+                                  : 'role user-role'
+                              }
+                            >
+                              {user.role}
+                            </span>
+                          </td>
 
-                            <td>
-                              {user.email ||
-                                'No email'}
-                            </td>
+                          <td>
+                            {new Date(
+                              user.created_at
+                            ).toLocaleDateString()}
+                          </td>
 
-                            <td>
-                              <span
-                                className={
-                                  user.role ===
-                                  'admin'
-                                    ? 'role admin-role'
-                                    : 'role user-role'
+                          <td>
+                            {user.id === profile.id ? (
+                              <span className="current-user">
+                                Current Admin
+                              </span>
+                            ) : (
+                              <button
+                                className="role-button"
+                                onClick={() =>
+                                  changeRole(
+                                    user.id,
+                                    user.role ===
+                                      'admin'
+                                      ? 'user'
+                                      : 'admin'
+                                  )
                                 }
                               >
-                                {
-                                  user.role
-                                }
-                              </span>
-                            </td>
-
-                            <td>
-                              {new Date(
-                                user.created_at
-                              ).toLocaleDateString()}
-                            </td>
-
-                            <td>
-
-                              {user.id ===
-                              profile.id ? (
-                                <span className="current-user">
-                                  Current
-                                  Admin
-                                </span>
-                              ) : (
-                                <button
-                                  className="role-button"
-                                  onClick={() =>
-                                    changeRole(
-                                      user.id,
-                                      user.role ===
-                                        'admin'
-                                        ? 'user'
-                                        : 'admin'
-                                    )
-                                  }
-                                >
-                                  {user.role ===
-                                  'admin'
-                                    ? 'Make User'
-                                    : 'Make Admin'}
-                                </button>
-                              )}
-
-                            </td>
-
-                          </tr>
-                        )
-                      )}
-
+                                {user.role === 'admin'
+                                  ? 'Make User'
+                                  : 'Make Admin'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
-
                   </table>
                 )}
-
               </div>
 
               {message && (
@@ -1248,45 +891,27 @@ function App() {
                   {message}
                 </p>
               )}
-
             </section>
           )}
 
-          {/*
-           * =========================
-           * TOOLS
-           * =========================
-           */}
-
-          {activePage ===
-            'tools' && (
+          {/* TOOLS */}
+          {activePage === 'tools' && (
             <>
               <section className="panel-card">
-
                 <div className="panel-header">
-
                   <div>
-                    <h2>
-                      Tools Management
-                    </h2>
+                    <h2>Tools Management</h2>
 
                     <p>
-                      Add, edit and
-                      manage your
-                      website tools
+                      Add, edit and manage your website tools
                     </p>
                   </div>
 
                   <div className="tools-actions">
-
                     <button
                       className="refresh-button"
-                      onClick={
-                        loadTools
-                      }
-                      disabled={
-                        toolsLoading
-                      }
+                      onClick={loadTools}
+                      disabled={toolsLoading}
                     >
                       {toolsLoading
                         ? 'Loading...'
@@ -1295,27 +920,19 @@ function App() {
 
                     <button
                       className="add-tool-button"
-                      onClick={
-                        openAddTool
-                      }
+                      onClick={openAddTool}
                     >
                       + Add Tool
                     </button>
-
                   </div>
-
                 </div>
 
                 {showToolForm && (
                   <form
                     className="tool-form"
-                    onSubmit={
-                      saveTool
-                    }
+                    onSubmit={saveTool}
                   >
-
                     <div className="tool-form-header">
-
                       <div>
                         <h3>
                           {editingToolId
@@ -1324,26 +941,20 @@ function App() {
                         </h3>
 
                         <p>
-                          Enter the
-                          tool information
-                          below.
+                          Enter the tool information below.
                         </p>
                       </div>
 
                       <button
                         type="button"
                         className="close-button"
-                        onClick={
-                          closeToolForm
-                        }
+                        onClick={closeToolForm}
                       >
                         ✕
                       </button>
-
                     </div>
 
                     <div className="tool-form-grid">
-
                       <div>
                         <label htmlFor="toolName">
                           Tool Name
@@ -1351,13 +962,9 @@ function App() {
 
                         <input
                           id="toolName"
-                          value={
-                            toolName
-                          }
+                          value={toolName}
                           onChange={(e) =>
-                            setToolName(
-                              e.target.value
-                            )
+                            setToolName(e.target.value)
                           }
                           placeholder="Example: Image Compressor"
                           required
@@ -1371,20 +978,15 @@ function App() {
 
                         <input
                           id="toolIcon"
-                          value={
-                            toolIcon
-                          }
+                          value={toolIcon}
                           onChange={(e) =>
-                            setToolIcon(
-                              e.target.value
-                            )
+                            setToolIcon(e.target.value)
                           }
                           placeholder="🛠️"
                         />
                       </div>
 
                       <div className="full-width">
-
                         <label htmlFor="toolUrl">
                           Tool URL
                         </label>
@@ -1392,31 +994,23 @@ function App() {
                         <input
                           id="toolUrl"
                           type="url"
-                          value={
-                            toolUrl
-                          }
+                          value={toolUrl}
                           onChange={(e) =>
-                            setToolUrl(
-                              e.target.value
-                            )
+                            setToolUrl(e.target.value)
                           }
                           placeholder="https://example.com"
                           required
                         />
-
                       </div>
 
                       <div className="full-width">
-
                         <label htmlFor="toolDescription">
                           Description
                         </label>
 
                         <textarea
                           id="toolDescription"
-                          value={
-                            toolDescription
-                          }
+                          value={toolDescription}
                           onChange={(e) =>
                             setToolDescription(
                               e.target.value
@@ -1424,38 +1018,28 @@ function App() {
                           }
                           placeholder="Describe what this tool does..."
                         />
-
                       </div>
 
                       <label className="active-toggle">
-
                         <input
                           type="checkbox"
-                          checked={
-                            toolActive
-                          }
+                          checked={toolActive}
                           onChange={(e) =>
                             setToolActive(
-                              e.target
-                                .checked
+                              e.target.checked
                             )
                           }
                         />
 
                         Active
-
                       </label>
-
                     </div>
 
                     <div className="tool-form-buttons">
-
                       <button
                         type="button"
                         className="cancel-button"
-                        onClick={
-                          closeToolForm
-                        }
+                        onClick={closeToolForm}
                       >
                         Cancel
                       </button>
@@ -1463,9 +1047,7 @@ function App() {
                       <button
                         type="submit"
                         className="save-tool-button"
-                        disabled={
-                          savingTool
-                        }
+                        disabled={savingTool}
                       >
                         {savingTool
                           ? 'Saving...'
@@ -1473,9 +1055,7 @@ function App() {
                             ? 'Update Tool'
                             : 'Save Tool'}
                       </button>
-
                     </div>
-
                   </form>
                 )}
 
@@ -1484,209 +1064,146 @@ function App() {
                     {message}
                   </p>
                 )}
-
               </section>
 
               <section className="panel-card tools-list-panel">
-
                 <div className="tools-list-header">
-
                   <div>
-                    <h2>
-                      All Tools
-                    </h2>
+                    <h2>All Tools</h2>
 
                     <p>
-                      {tools.length}{' '}
-                      total tool
-                      {tools.length ===
-                      1
-                        ? ''
-                        : 's'}
+                      {tools.length} total tool
+                      {tools.length === 1 ? '' : 's'}
                     </p>
                   </div>
-
                 </div>
 
                 <div className="tool-search">
-
                   <input
                     type="search"
                     placeholder="🔍 Search tools..."
-                    value={
-                      toolSearch
-                    }
+                    value={toolSearch}
                     onChange={(e) =>
-                      setToolSearch(
-                        e.target.value
-                      )
+                      setToolSearch(e.target.value)
                     }
                   />
-
                 </div>
 
                 {toolsLoading ? (
                   <div className="empty-tools">
-
-                    <h3>
-                      Loading tools...
-                    </h3>
-
-                    <p>
-                      Please wait.
-                    </p>
-
+                    <h3>Loading tools...</h3>
+                    <p>Please wait.</p>
                   </div>
-                ) : filteredTools.length ===
-                  0 ? (
+                ) : filteredTools.length === 0 ? (
                   <div className="empty-tools">
-
                     <div className="empty-icon">
                       🛠️
                     </div>
 
                     <h3>
-                      {tools.length ===
-                      0
+                      {tools.length === 0
                         ? 'No tools yet'
                         : 'No matching tools'}
                     </h3>
 
                     <p>
-                      {tools.length ===
-                      0
+                      {tools.length === 0
                         ? 'Click "Add Tool" to create your first tool.'
                         : 'Try a different search.'}
                     </p>
-
                   </div>
                 ) : (
                   <div className="tools-grid">
-
-                    {filteredTools.map(
-                      (tool) => (
-                        <div
-                          key={
-                            tool.id
-                          }
-                          className={
-                            tool.is_active
-                              ? 'tool-admin-card'
-                              : 'tool-admin-card inactive'
-                          }
-                        >
-
-                          <div className="tool-card-top">
-
-                            <div className="tool-card-icon">
-                              {tool.icon ||
-                                '🛠️'}
-                            </div>
-
-                            <span
-                              className={
-                                tool.is_active
-                                  ? 'tool-status active-status'
-                                  : 'tool-status inactive-status'
-                              }
-                            >
-                              {tool.is_active
-                                ? 'Active'
-                                : 'Inactive'}
-                            </span>
-
+                    {filteredTools.map((tool) => (
+                      <div
+                        key={tool.id}
+                        className={
+                          tool.is_active
+                            ? 'tool-admin-card'
+                            : 'tool-admin-card inactive'
+                        }
+                      >
+                        <div className="tool-card-top">
+                          <div className="tool-card-icon">
+                            {tool.icon || '🛠️'}
                           </div>
 
-                          <h3>
-                            {tool.name}
-                          </h3>
-
-                          <p>
-                            {tool.description ||
-                              'No description provided.'}
-                          </p>
-
-                          <a
-                            href={
-                              tool.url
+                          <span
+                            className={
+                              tool.is_active
+                                ? 'tool-status active-status'
+                                : 'tool-status inactive-status'
                             }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="tool-url"
                           >
-                            Open Tool ↗
-                          </a>
-
-                          <div className="tool-card-actions">
-
-                            <button
-                              className="edit-tool-button"
-                              onClick={() =>
-                                openEditTool(
-                                  tool
-                                )
-                              }
-                            >
-                              ✏️ Edit
-                            </button>
-
-                            <button
-                              className="toggle-tool-button"
-                              onClick={() =>
-                                toggleTool(
-                                  tool
-                                )
-                              }
-                            >
-                              {tool.is_active
-                                ? '⏸️ Disable'
-                                : '▶️ Enable'}
-                            </button>
-
-                            <button
-                              className="delete-tool-button"
-                              onClick={() =>
-                                deleteTool(
-                                  tool.id
-                                )
-                              }
-                            >
-                              🗑️ Delete
-                            </button>
-
-                          </div>
-
+                            {tool.is_active
+                              ? 'Active'
+                              : 'Inactive'}
+                          </span>
                         </div>
-                      )
-                    )}
 
+                        <h3>{tool.name}</h3>
+
+                        <p>
+                          {tool.description ||
+                            'No description provided.'}
+                        </p>
+
+                        <a
+                          href={tool.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="tool-url"
+                        >
+                          Open Tool ↗
+                        </a>
+
+                        <div className="tool-card-actions">
+                          <button
+                            className="edit-tool-button"
+                            onClick={() =>
+                              openEditTool(tool)
+                            }
+                          >
+                            ✏️ Edit
+                          </button>
+
+                          <button
+                            className="toggle-tool-button"
+                            onClick={() =>
+                              toggleTool(tool)
+                            }
+                          >
+                            {tool.is_active
+                              ? '⏸️ Disable'
+                              : '▶️ Enable'}
+                          </button>
+
+                          <button
+                            className="delete-tool-button"
+                            onClick={() =>
+                              deleteTool(tool.id)
+                            }
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
-
               </section>
             </>
           )}
 
-          {/*
-           * =========================
-           * STATISTICS
-           * =========================
-           */}
-
-          {activePage ===
-            'statistics' && (
+          {/* STATISTICS */}
+          {activePage === 'statistics' && (
             <section className="statistics-page">
-
               <div className="panel-card statistics-intro">
-
                 <div>
-                  <h2>
-                    Website Statistics
-                  </h2>
+                  <h2>Website Statistics</h2>
 
                   <p>
-                    Overview of your
-                    users and tools.
+                    Overview of your users and tools.
                   </p>
                 </div>
 
@@ -1695,125 +1212,78 @@ function App() {
                   onClick={async () => {
                     await loadUsers()
                     await loadTools()
-
                     setMessage(
                       'Statistics refreshed successfully.'
                     )
                   }}
                   disabled={
-                    usersLoading ||
-                    toolsLoading
+                    usersLoading || toolsLoading
                   }
                 >
-                  {usersLoading ||
-                  toolsLoading
+                  {usersLoading || toolsLoading
                     ? 'Loading...'
                     : '↻ Refresh'}
                 </button>
-
               </div>
 
               <div className="stats-grid statistics-grid">
-
                 <div className="stat-card blue">
-
                   <div className="stat-icon">
                     👥
                   </div>
 
                   <div>
-                    <span>
-                      Total Users
-                    </span>
-
-                    <strong>
-                      {totalUsers}
-                    </strong>
+                    <span>Total Users</span>
+                    <strong>{totalUsers}</strong>
                   </div>
-
                 </div>
 
                 <div className="stat-card purple">
-
                   <div className="stat-icon">
                     👑
                   </div>
 
                   <div>
-                    <span>
-                      Administrators
-                    </span>
-
-                    <strong>
-                      {totalAdmins}
-                    </strong>
+                    <span>Administrators</span>
+                    <strong>{totalAdmins}</strong>
                   </div>
-
                 </div>
 
                 <div className="stat-card green">
-
                   <div className="stat-icon">
                     👤
                   </div>
 
                   <div>
-                    <span>
-                      Normal Users
-                    </span>
-
-                    <strong>
-                      {normalUsers}
-                    </strong>
+                    <span>Normal Users</span>
+                    <strong>{normalUsers}</strong>
                   </div>
-
                 </div>
 
                 <div className="stat-card orange">
-
                   <div className="stat-icon">
                     🛠️
                   </div>
 
                   <div>
-                    <span>
-                      Total Tools
-                    </span>
-
-                    <strong>
-                      {tools.length}
-                    </strong>
+                    <span>Total Tools</span>
+                    <strong>{tools.length}</strong>
                   </div>
-
                 </div>
-
               </div>
 
               <div className="statistics-columns">
-
                 <div className="panel-card">
-
                   <div className="panel-header">
-
                     <div>
-                      <h2>
-                        Tools Overview
-                      </h2>
-
-                      <p>
-                        Current tool
-                        status
-                      </p>
+                      <h2>Tools Overview</h2>
+                      <p>Current tool status</p>
                     </div>
-
                   </div>
 
                   <div className="statistics-list">
-
                     <div className="statistics-row">
-                      <span>
-                        Active Tools
-                      </span>
+                      <span>Active Tools</span>
 
                       <strong className="stat-green">
                         {activeTools}
@@ -1821,9 +1291,7 @@ function App() {
                     </div>
 
                     <div className="statistics-row">
-                      <span>
-                        Inactive Tools
-                      </span>
+                      <span>Inactive Tools</span>
 
                       <strong className="stat-red">
                         {inactiveTools}
@@ -1831,42 +1299,26 @@ function App() {
                     </div>
 
                     <div className="statistics-row">
-                      <span>
-                        Total Tools
-                      </span>
+                      <span>Total Tools</span>
 
                       <strong>
                         {tools.length}
                       </strong>
                     </div>
-
                   </div>
-
                 </div>
 
                 <div className="panel-card">
-
                   <div className="panel-header">
-
                     <div>
-                      <h2>
-                        Users Overview
-                      </h2>
-
-                      <p>
-                        Current user
-                        roles
-                      </p>
+                      <h2>Users Overview</h2>
+                      <p>Current user roles</p>
                     </div>
-
                   </div>
 
                   <div className="statistics-list">
-
                     <div className="statistics-row">
-                      <span>
-                        Administrators
-                      </span>
+                      <span>Administrators</span>
 
                       <strong className="stat-purple">
                         {totalAdmins}
@@ -1874,9 +1326,7 @@ function App() {
                     </div>
 
                     <div className="statistics-row">
-                      <span>
-                        Normal Users
-                      </span>
+                      <span>Normal Users</span>
 
                       <strong className="stat-green">
                         {normalUsers}
@@ -1884,168 +1334,177 @@ function App() {
                     </div>
 
                     <div className="statistics-row">
-                      <span>
-                        Total Users
-                      </span>
+                      <span>Total Users</span>
 
                       <strong>
                         {totalUsers}
                       </strong>
                     </div>
+                  </div>
+                </div>
+              </div>
 
+              {message && (
+                <p className="message">
+                  {message}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* SETTINGS */}
+          {activePage === 'settings' && (
+            <section className="settings-page">
+
+              <div className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Admin Settings</h2>
+
+                    <p>
+                      Manage your administrator account.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="settings-profile">
+                  <div className="settings-avatar">
+                    A
                   </div>
 
-                </div>
+                  <div>
+                    <h3>Administrator</h3>
 
+                    <p>
+                      {profile.email ||
+                        'No email available'}
+                    </p>
+
+                    <span className="settings-role">
+                      ADMIN
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {message && (
-                <p className="message">
-                  {message}
-                </p>
-              )}
+              <div className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Change Password</h2>
 
-            </section>
-          )}
-
-          {/*
-           * =========================
-           * SETTINGS
-           * =========================
-           */}
-
-          {activePage ===
-            'settings' && (
-            <section className="panel-card">
-
-              <div className="panel-header">
-
-                <div>
-                  <h2>
-                    Settings
-                  </h2>
-
-                  <p>
-                    Manage your
-                    administrator
-                    account.
-                  </p>
+                    <p>
+                      Update your administrator password.
+                    </p>
+                  </div>
                 </div>
 
-              </div>
+                <div className="settings-form">
+                  <div>
+                    <label htmlFor="newPassword">
+                      New Password
+                    </label>
 
-              <div className="statistics-list">
+                    <input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) =>
+                        setNewPassword(e.target.value)
+                      }
+                      placeholder="Enter new password"
+                      minLength={6}
+                    />
+                  </div>
 
-                <div className="statistics-row">
+                  <div>
+                    <label htmlFor="confirmPassword">
+                      Confirm Password
+                    </label>
 
-                  <span>
-                    Account Email
-                  </span>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) =>
+                        setConfirmPassword(
+                          e.target.value
+                        )
+                      }
+                      placeholder="Confirm new password"
+                      minLength={6}
+                    />
+                  </div>
 
-                  <strong>
-                    {profile.email ||
-                      'No email'}
-                  </strong>
-
-                </div>
-
-                <div className="statistics-row">
-
-                  <span>
-                    Account Role
-                  </span>
-
-                  <strong className="stat-purple">
-                    Administrator
-                  </strong>
-
-                </div>
-
-                <div className="statistics-row">
-
-                  <span>
-                    User ID
-                  </span>
-
-                  <strong
-                    style={{
-                      fontSize:
-                        '12px',
-                      maxWidth:
-                        '350px',
-                      overflow:
-                        'hidden',
-                      textOverflow:
-                        'ellipsis',
-                    }}
+                  <button
+                    className="save-settings-button"
+                    onClick={changePassword}
+                    disabled={passwordLoading}
                   >
-                    {profile.id}
-                  </strong>
+                    {passwordLoading
+                      ? 'Updating...'
+                      : '🔐 Change Password'}
+                  </button>
 
+                  {passwordMessage && (
+                    <p className="settings-message">
+                      {passwordMessage}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="panel-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Account Information</h2>
+
+                    <p>
+                      Current administrator account details.
+                    </p>
+                  </div>
                 </div>
 
+                <div className="account-info">
+                  <div className="account-row">
+                    <span>Email</span>
+
+                    <strong>
+                      {profile.email ||
+                        'Not available'}
+                    </strong>
+                  </div>
+
+                  <div className="account-row">
+                    <span>Role</span>
+
+                    <strong className="stat-purple">
+                      Administrator
+                    </strong>
+                  </div>
+
+                  <div className="account-row">
+                    <span>Account Created</span>
+
+                    <strong>
+                      {new Date(
+                        profile.created_at
+                      ).toLocaleDateString()}
+                    </strong>
+                  </div>
+                </div>
               </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap:
-                    'wrap',
-                  gap: '10px',
-                  marginTop:
-                    '25px',
-                }}
-              >
-
-                <button
-                  className="refresh-button"
-                  onClick={
-                    changePassword
-                  }
-                >
-                  🔑 Change Password
-                </button>
-
-                <button
-                  className="delete-tool-button"
-                  onClick={
-                    logout
-                  }
-                >
-                  🚪 Logout
-                </button>
-
-              </div>
-
-              {message && (
-                <p className="message">
-                  {message}
-                </p>
-              )}
 
             </section>
           )}
-
         </main>
-
       </div>
     )
   }
 
-  /*
-   * =========================
-   * LOGIN / SIGNUP
-   * =========================
-   */
-
   return (
     <main className="auth-container">
-
       <div className="auth-card">
-
-        <h1>
-          ToolMaster Pro
-        </h1>
+        <h1>ToolMaster Pro</h1>
 
         <p className="subtitle">
           {isAdminLogin
@@ -2056,21 +1515,14 @@ function App() {
         </p>
 
         <div className="mode-buttons">
-
           <button
             type="button"
             className={
-              !isAdminLogin
-                ? 'active'
-                : ''
+              !isAdminLogin ? 'active' : ''
             }
             onClick={() => {
-              setIsAdminLogin(
-                false
-              )
-              setIsSignup(
-                false
-              )
+              setIsAdminLogin(false)
+              setIsSignup(false)
               setMessage('')
             }}
           >
@@ -2080,23 +1532,16 @@ function App() {
           <button
             type="button"
             className={
-              isAdminLogin
-                ? 'active'
-                : ''
+              isAdminLogin ? 'active' : ''
             }
             onClick={() => {
-              setIsAdminLogin(
-                true
-              )
-              setIsSignup(
-                false
-              )
+              setIsAdminLogin(true)
+              setIsSignup(false)
               setMessage('')
             }}
           >
             Admin Login
           </button>
-
         </div>
 
         {!isAdminLogin && (
@@ -2104,9 +1549,7 @@ function App() {
             type="button"
             className="signup-toggle"
             onClick={() => {
-              setIsSignup(
-                !isSignup
-              )
+              setIsSignup(!isSignup)
               setMessage('')
             }}
           >
@@ -2116,12 +1559,7 @@ function App() {
           </button>
         )}
 
-        <form
-          onSubmit={
-            handleAuth
-          }
-        >
-
+        <form onSubmit={handleAuth}>
           <label htmlFor="email">
             Email
           </label>
@@ -2132,9 +1570,7 @@ function App() {
             placeholder="Enter email"
             value={email}
             onChange={(e) =>
-              setEmail(
-                e.target.value
-              )
+              setEmail(e.target.value)
             }
             required
           />
@@ -2149,9 +1585,7 @@ function App() {
             placeholder="Enter password"
             value={password}
             onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
+              setPassword(e.target.value)
             }
             minLength={6}
             required
@@ -2160,9 +1594,7 @@ function App() {
           <button
             type="submit"
             className="submit-button"
-            disabled={
-              loading
-            }
+            disabled={loading}
           >
             {loading
               ? 'Please wait...'
@@ -2172,7 +1604,6 @@ function App() {
                   ? 'Admin Login'
                   : 'Login'}
           </button>
-
         </form>
 
         {message && (
@@ -2180,9 +1611,7 @@ function App() {
             {message}
           </p>
         )}
-
       </div>
-
     </main>
   )
 }
