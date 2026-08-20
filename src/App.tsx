@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 import { supabase } from './supabase'
-
+import TextToVideo from './TextToVideo'
 type Profile = {
   id: string
   email: string | null
