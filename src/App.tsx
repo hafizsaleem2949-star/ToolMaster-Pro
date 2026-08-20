@@ -593,7 +593,16 @@ function App() {
             >
               🛠️ Tools
             </button>
-
+<button
+  className={
+    activePage === 'text-to-video'
+      ? 'nav-item active'
+      : 'nav-item'
+  }
+  onClick={() => setActivePage('text-to-video')}
+>
+  🎬 Text to Video
+</button>
             <button
               className={
                 activePage === 'statistics'
