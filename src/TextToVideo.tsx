@@ -1,56 +1,49 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-type Plan = {
-  name: string
-  price: string
-  credits: number
-  description: string
-  icon: string
-  popular?: boolean
+type VideoHistory = {
+  id: string
+  prompt: string
+  duration: string
+  quality: string
+  style: string
+  videoUrl: string
+  createdAt: string
 }
-
-const plans: Plan[] = [
-  {
-    name: 'Free',
-    price: '$0',
-    credits: 5,
-    description: 'Try text-to-video generation',
-    icon: '🆓',
-  },
-  {
-    name: 'Basic',
-    price: '$9.99/mo',
-    credits: 50,
-    description: 'More generations with HD quality',
-    icon: '🔵',
-  },
-  {
-    name: 'Popular',
-    price: '$19.99/mo',
-    credits: 150,
-    description: 'More credits with HD/1080p',
-    icon: '⭐',
-    popular: true,
-  },
-  {
-    name: 'Premium',
-    price: '$39.99/mo',
-    credits: 500,
-    description: 'Highest limits and premium features',
-    icon: '👑',
-  },
-]
 
 export default function TextToVideo() {
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState('5')
   const [quality, setQuality] = useState('720p')
   const [style, setStyle] = useState('Cinematic')
+
   const [generating, setGenerating] = useState(false)
   const [videoUrl, setVideoUrl] = useState('')
-  const [credits, setCredits] = useState(5)
-  const [selectedPlan, setSelectedPlan] = useState('Free')
   const [message, setMessage] = useState('')
+
+  const [history, setHistory] = useState<VideoHistory[]>([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem('toolmaster_video_history')
+
+    if (saved) {
+      try {
+        setHistory(JSON.parse(saved))
+      } catch {
+        setHistory([])
+      }
+    }
+  }, [])
+
+  function saveHistory(item: VideoHistory) {
+    const updated = [item, ...history]
+
+    setHistory(updated)
+
+    localStorage.setItem(
+      'toolmaster_video_history',
+      JSON.stringify(updated)
+    )
+  }
 
   async function generateVideo() {
     if (!prompt.trim()) {
@@ -58,231 +51,249 @@ export default function TextToVideo() {
       return
     }
 
-    if (credits <= 0) {
-      setMessage('You have no credits remaining. Please upgrade your plan.')
-      return
-    }
-
     setGenerating(true)
     setMessage('')
     setVideoUrl('')
 
-    /*
-      DEMO MODE
+    try {
+      const response = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          duration,
+          quality,
+          style,
+        }),
+      })
 
-      یہاں بعد میں اصل Text-to-Video API connect کی جائے گی۔
-      فی الحال UI generation process دکھائے گا۔
-    */
+      const data = await response.json()
 
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+      if (!response.ok) {
+        throw new Error(
+          data?.error || 'Video generation failed.'
+        )
+      }
 
-    setCredits((current) => current - 1)
+      if (!data.videoUrl) {
+        throw new Error(
+          'Video was generated but no video URL was returned.'
+        )
+      }
 
-    /*
-      Demo video.
-      API connect ہونے کے بعد اس URL کو generated video URL سے replace کیا جائے گا۔
-    */
-    setVideoUrl(
-      'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'
-    )
+      setVideoUrl(data.videoUrl)
 
-    setGenerating(false)
-    setMessage('Video generated successfully!')
+      const historyItem: VideoHistory = {
+        id: Date.now().toString(),
+        prompt,
+        duration,
+        quality,
+        style,
+        videoUrl: data.videoUrl,
+        createdAt: new Date().toLocaleString(),
+      }
+
+      saveHistory(historyItem)
+
+      setMessage('Video generated successfully!')
+    } catch (error: any) {
+      setMessage(
+        error?.message ||
+          'Something went wrong while generating the video.'
+      )
+    } finally {
+      setGenerating(false)
+    }
   }
 
-  function selectPlan(plan: Plan) {
-    setSelectedPlan(plan.name)
-    setCredits(plan.credits)
-
-    setMessage(
-      `${plan.name} plan selected. ${plan.credits} credits available.`
-    )
-  }
-
-  function downloadVideo() {
-    if (!videoUrl) return
-
+  function downloadVideo(url: string) {
     const link = document.createElement('a')
-    link.href = videoUrl
-    link.download = 'toolmaster-generated-video.mp4'
+
+    link.href = url
+    link.download = 'toolmaster-video.mp4'
     link.target = '_blank'
+
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  function deleteVideo(id: string) {
+    const updated = history.filter(
+      (video) => video.id !== id
+    )
+
+    setHistory(updated)
+
+    localStorage.setItem(
+      'toolmaster_video_history',
+      JSON.stringify(updated)
+    )
+  }
+
+  function clearHistory() {
+    setHistory([])
+    localStorage.removeItem('toolmaster_video_history')
   }
 
   return (
     <div
       style={{
         minHeight: '100vh',
-        padding: '40px 20px',
+        padding: '35px 20px',
         background:
-          'linear-gradient(135deg, #07111f 0%, #101b35 50%, #16213e 100%)',
+          'linear-gradient(135deg, #07111f, #101b35, #16213e)',
         color: '#fff',
       }}
     >
       <div
         style={{
           maxWidth: '1200px',
-          margin: '0 auto',
+          margin: 'auto',
         }}
       >
+
         {/* HEADER */}
 
         <div
           style={{
             textAlign: 'center',
-            marginBottom: '40px',
+            marginBottom: '35px',
           }}
         >
-          <div
-            style={{
-              fontSize: '52px',
-              marginBottom: '10px',
-            }}
-          >
-            🎬
-          </div>
+          <div style={{ fontSize: '52px' }}>🎬</div>
 
           <h1
             style={{
               fontSize: '42px',
-              margin: 0,
-              fontWeight: 800,
+              margin: '8px 0',
             }}
           >
             Text to Video AI
           </h1>
 
-          <p
-            style={{
-              color: '#aab7cf',
-              fontSize: '17px',
-              marginTop: '12px',
-            }}
-          >
-            Turn your text into stunning videos with AI
+          <p style={{ color: '#aab7cf' }}>
+            Turn your text into stunning AI videos
           </p>
         </div>
 
-        {/* MAIN GENERATOR */}
+        {/* GENERATOR */}
 
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.4fr 0.6fr',
+            gridTemplateColumns:
+              'minmax(0, 1.4fr) minmax(300px, 0.6fr)',
             gap: '24px',
-            marginBottom: '50px',
           }}
         >
-          {/* PROMPT */}
+
+          {/* CREATE */}
 
           <div
             style={{
               background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              border:
+                '1px solid rgba(255,255,255,0.12)',
               borderRadius: '20px',
               padding: '28px',
-              backdropFilter: 'blur(10px)',
             }}
           >
-            <h2 style={{ marginTop: 0 }}>
-              ✨ Create Your Video
-            </h2>
+            <h2>✨ Create Your Video</h2>
 
-            <label
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: 600,
-              }}
-            >
-              Video Prompt
-            </label>
+            <label>Video Prompt</label>
 
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: A beautiful sunset over the mountains, cinematic camera movement, realistic clouds..."
+              onChange={(e) =>
+                setPrompt(e.target.value)
+              }
+              placeholder="Example: A beautiful sunset over mountains, cinematic camera movement, realistic clouds..."
               rows={7}
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
+                marginTop: '8px',
                 padding: '16px',
                 borderRadius: '12px',
-                border: '1px solid rgba(255,255,255,0.15)',
+                border:
+                  '1px solid rgba(255,255,255,0.15)',
                 background: 'rgba(0,0,0,0.25)',
                 color: '#fff',
                 resize: 'vertical',
                 fontSize: '15px',
-                outline: 'none',
               }}
             />
+
+            {/* OPTIONS */}
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns:
+                  'repeat(3, 1fr)',
                 gap: '14px',
                 marginTop: '20px',
               }}
             >
+
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                  }}
-                >
-                  Duration
-                </label>
+                <label>Duration</label>
 
                 <select
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) =>
+                    setDuration(e.target.value)
+                  }
                   style={selectStyle}
                 >
-                  <option value="5">5 Seconds</option>
-                  <option value="10">10 Seconds</option>
-                  <option value="15">15 Seconds</option>
-                  <option value="30">30 Seconds</option>
+                  <option value="5">
+                    5 Seconds
+                  </option>
+                  <option value="10">
+                    10 Seconds
+                  </option>
+                  <option value="15">
+                    15 Seconds
+                  </option>
+                  <option value="30">
+                    30 Seconds
+                  </option>
                 </select>
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                  }}
-                >
-                  Quality
-                </label>
+                <label>Quality</label>
 
                 <select
                   value={quality}
-                  onChange={(e) => setQuality(e.target.value)}
+                  onChange={(e) =>
+                    setQuality(e.target.value)
+                  }
                   style={selectStyle}
                 >
-                  <option value="480p">480p</option>
-                  <option value="720p">720p HD</option>
-                  <option value="1080p">1080p</option>
+                  <option value="480p">
+                    480p
+                  </option>
+                  <option value="720p">
+                    720p HD
+                  </option>
+                  <option value="1080p">
+                    1080p
+                  </option>
                 </select>
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                  }}
-                >
-                  Style
-                </label>
+                <label>Style</label>
 
                 <select
                   value={style}
-                  onChange={(e) => setStyle(e.target.value)}
+                  onChange={(e) =>
+                    setStyle(e.target.value)
+                  }
                   style={selectStyle}
                 >
                   <option>Cinematic</option>
@@ -293,53 +304,29 @@ export default function TextToVideo() {
                   <option>Documentary</option>
                 </select>
               </div>
+
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '24px',
-                padding: '14px 16px',
-                borderRadius: '12px',
-                background: 'rgba(255,255,255,0.05)',
-              }}
-            >
-              <span>
-                💳 Credits remaining:{' '}
-                <strong>{credits}</strong>
-              </span>
-
-              <span
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  background: 'rgba(80,150,255,0.18)',
-                  color: '#8ec5ff',
-                  fontSize: '13px',
-                }}
-              >
-                {selectedPlan} Plan
-              </span>
-            </div>
+            {/* GENERATE */}
 
             <button
               onClick={generateVideo}
               disabled={generating}
               style={{
                 width: '100%',
-                marginTop: '20px',
+                marginTop: '24px',
                 padding: '16px',
                 border: 0,
                 borderRadius: '12px',
                 background: generating
                   ? '#475569'
-                  : 'linear-gradient(90deg, #2563eb, #7c3aed)',
+                  : 'linear-gradient(90deg,#2563eb,#7c3aed)',
                 color: '#fff',
                 fontSize: '17px',
                 fontWeight: 700,
-                cursor: generating ? 'not-allowed' : 'pointer',
+                cursor: generating
+                  ? 'not-allowed'
+                  : 'pointer',
               }}
             >
               {generating
@@ -353,7 +340,8 @@ export default function TextToVideo() {
                   marginTop: '15px',
                   padding: '12px',
                   borderRadius: '10px',
-                  background: 'rgba(34,197,94,0.12)',
+                  background:
+                    'rgba(34,197,94,0.12)',
                   color: '#86efac',
                   textAlign: 'center',
                 }}
@@ -367,15 +355,15 @@ export default function TextToVideo() {
 
           <div
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
+              background:
+                'rgba(255,255,255,0.06)',
+              border:
+                '1px solid rgba(255,255,255,0.12)',
               borderRadius: '20px',
               padding: '24px',
             }}
           >
-            <h2 style={{ marginTop: 0 }}>
-              🎥 Preview
-            </h2>
+            <h2>🎥 Preview</h2>
 
             {generating ? (
               <div
@@ -391,14 +379,15 @@ export default function TextToVideo() {
                 <div>
                   <div
                     style={{
-                      fontSize: '48px',
-                      marginBottom: '15px',
+                      fontSize: '50px',
                     }}
                   >
                     ⚙️
                   </div>
 
-                  <strong>Creating your video...</strong>
+                  <h3>
+                    Creating your video...
+                  </h3>
 
                   <p>
                     AI is processing your prompt.
@@ -407,6 +396,7 @@ export default function TextToVideo() {
               </div>
             ) : videoUrl ? (
               <div>
+
                 <video
                   src={videoUrl}
                   controls
@@ -418,11 +408,13 @@ export default function TextToVideo() {
                 />
 
                 <button
-                  onClick={downloadVideo}
+                  onClick={() =>
+                    downloadVideo(videoUrl)
+                  }
                   style={{
                     width: '100%',
                     marginTop: '15px',
-                    padding: '13px',
+                    padding: '14px',
                     border: 0,
                     borderRadius: '10px',
                     background: '#16a34a',
@@ -434,6 +426,7 @@ export default function TextToVideo() {
                 >
                   ⬇️ Download Video
                 </button>
+
               </div>
             ) : (
               <div
@@ -447,171 +440,237 @@ export default function TextToVideo() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '55px' }}>
+                  <div
+                    style={{ fontSize: '55px' }}
+                  >
                     🎞️
                   </div>
 
                   <p>
-                    Your generated video will appear here.
+                    Your generated video will
+                    appear here.
                   </p>
                 </div>
               </div>
             )}
           </div>
+
         </div>
 
-        {/* PLANS */}
+        {/* HISTORY */}
 
-        <section>
-          <div
-            style={{
-              textAlign: 'center',
-              marginBottom: '30px',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: '32px',
-                marginBottom: '8px',
-              }}
-            >
-              Choose Your Plan
-            </h2>
-
-            <p style={{ color: '#9ca9bf' }}>
-              Upgrade your plan and create more AI videos.
-            </p>
-          </div>
+        <section
+          style={{
+            marginTop: '45px',
+          }}
+        >
 
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns:
-                'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: '18px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              gap: '15px',
             }}
           >
-            {plans.map((plan) => (
-              <div
-                key={plan.name}
+
+            <div>
+              <h2
                 style={{
-                  position: 'relative',
-                  padding: '24px',
-                  borderRadius: '18px',
-                  background:
-                    selectedPlan === plan.name
-                      ? 'rgba(37,99,235,0.18)'
-                      : 'rgba(255,255,255,0.05)',
-                  border:
-                    selectedPlan === plan.name
-                      ? '2px solid #3b82f6'
-                      : '1px solid rgba(255,255,255,0.12)',
+                  marginBottom: '5px',
                 }}
               >
-                {plan.popular && (
-                  <div
+                📜 My Videos
+              </h2>
+
+              <p
+                style={{
+                  color: '#9ca9bf',
+                  margin: 0,
+                }}
+              >
+                Your generated video history
+              </p>
+            </div>
+
+            {history.length > 0 && (
+              <button
+                onClick={clearHistory}
+                style={{
+                  padding: '10px 15px',
+                  borderRadius: '9px',
+                  border:
+                    '1px solid rgba(239,68,68,0.4)',
+                  background:
+                    'rgba(239,68,68,0.12)',
+                  color: '#fca5a5',
+                  cursor: 'pointer',
+                }}
+              >
+                🗑️ Clear History
+              </button>
+            )}
+
+          </div>
+
+          {history.length === 0 ? (
+            <div
+              style={{
+                padding: '45px 20px',
+                textAlign: 'center',
+                borderRadius: '16px',
+                background:
+                  'rgba(255,255,255,0.05)',
+                border:
+                  '1px solid rgba(255,255,255,0.1)',
+                color: '#718096',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '50px',
+                }}
+              >
+                🎞️
+              </div>
+
+              <p>
+                You haven't generated any videos
+                yet.
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns:
+                  'repeat(auto-fit,minmax(280px,1fr))',
+                gap: '20px',
+              }}
+            >
+
+              {history.map((video) => (
+                <div
+                  key={video.id}
+                  style={{
+                    background:
+                      'rgba(255,255,255,0.06)',
+                    border:
+                      '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '16px',
+                    padding: '15px',
+                  }}
+                >
+
+                  <video
+                    src={video.videoUrl}
+                    controls
                     style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      right: '18px',
-                      background: '#f59e0b',
-                      color: '#111827',
-                      padding: '5px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 800,
+                      width: '100%',
+                      borderRadius: '10px',
+                      background: '#000',
+                    }}
+                  />
+
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      lineHeight: 1.5,
+                      marginTop: '12px',
                     }}
                   >
-                    MOST POPULAR
+                    {video.prompt}
+                  </p>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '7px',
+                      marginBottom: '12px',
+                    }}
+                  >
+
+                    <span style={tagStyle}>
+                      ⏱️ {video.duration}s
+                    </span>
+
+                    <span style={tagStyle}>
+                      🎥 {video.quality}
+                    </span>
+
+                    <span style={tagStyle}>
+                      🎨 {video.style}
+                    </span>
+
                   </div>
-                )}
 
-                <div style={{ fontSize: '35px' }}>
-                  {plan.icon}
+                  <small
+                    style={{
+                      color: '#718096',
+                    }}
+                  >
+                    {video.createdAt}
+                  </small>
+
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns:
+                        '1fr 1fr',
+                      gap: '8px',
+                      marginTop: '12px',
+                    }}
+                  >
+
+                    <button
+                      onClick={() =>
+                        downloadVideo(
+                          video.videoUrl
+                        )
+                      }
+                      style={downloadStyle}
+                    >
+                      ⬇️ Download
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        deleteVideo(video.id)
+                      }
+                      style={deleteStyle}
+                    >
+                      🗑️ Delete
+                    </button>
+
+                  </div>
+
                 </div>
+              ))}
 
-                <h3
-                  style={{
-                    fontSize: '23px',
-                    marginBottom: '8px',
-                  }}
-                >
-                  {plan.name}
-                </h3>
+            </div>
+          )}
 
-                <div
-                  style={{
-                    fontSize: '25px',
-                    fontWeight: 800,
-                    marginBottom: '10px',
-                  }}
-                >
-                  {plan.price}
-                </div>
-
-                <p
-                  style={{
-                    color: '#9ca9bf',
-                    minHeight: '42px',
-                  }}
-                >
-                  {plan.description}
-                </p>
-
-                <div
-                  style={{
-                    margin: '18px 0',
-                    padding: '10px',
-                    borderRadius: '8px',
-                    background: 'rgba(255,255,255,0.06)',
-                  }}
-                >
-                  🎬 <strong>{plan.credits}</strong> video credits
-                </div>
-
-                <button
-                  onClick={() => selectPlan(plan)}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '9px',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    background:
-                      selectedPlan === plan.name
-                        ? '#2563eb'
-                        : 'rgba(255,255,255,0.08)',
-                    color: '#fff',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {selectedPlan === plan.name
-                    ? '✓ Current Plan'
-                    : plan.name === 'Free'
-                      ? 'Select Free'
-                      : `Choose ${plan.name}`}
-                </button>
-              </div>
-            ))}
-          </div>
         </section>
 
-        {/* NOTE */}
+        {/* FOOTER NOTE */}
 
         <div
           style={{
-            marginTop: '35px',
+            marginTop: '40px',
             padding: '18px',
-            borderRadius: '12px',
-            background: 'rgba(245,158,11,0.08)',
-            border: '1px solid rgba(245,158,11,0.2)',
-            color: '#fcd34d',
             textAlign: 'center',
+            borderRadius: '12px',
+            background:
+              'rgba(59,130,246,0.08)',
+            color: '#93c5fd',
           }}
         >
-          ⚡ Video generation is currently in demo mode.
-          The real AI video API will be connected next.
+          🔒 Your video history is saved in
+          this browser.
         </div>
+
       </div>
     </div>
   )
@@ -620,9 +679,39 @@ export default function TextToVideo() {
 const selectStyle = {
   width: '100%',
   padding: '12px',
+  marginTop: '7px',
   borderRadius: '9px',
-  border: '1px solid rgba(255,255,255,0.15)',
+  border:
+    '1px solid rgba(255,255,255,0.15)',
   background: '#111827',
   color: '#fff',
   fontSize: '14px',
+}
+
+const tagStyle = {
+  padding: '5px 8px',
+  borderRadius: '7px',
+  background: 'rgba(255,255,255,0.07)',
+  color: '#cbd5e1',
+  fontSize: '12px',
+}
+
+const downloadStyle = {
+  padding: '10px',
+  border: 0,
+  borderRadius: '8px',
+  background: '#16a34a',
+  color: '#fff',
+  fontWeight: 700,
+  cursor: 'pointer',
+}
+
+const deleteStyle = {
+  padding: '10px',
+  border: 0,
+  borderRadius: '8px',
+  background: '#991b1b',
+  color: '#fff',
+  fontWeight: 700,
+  cursor: 'pointer',
 }
