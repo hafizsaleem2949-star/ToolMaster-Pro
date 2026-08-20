@@ -1,9 +1,4 @@
-import { import TextToVideo from './TextToVideo'
-  useEffect,
-  useState,
-} from 'react'
-
-import { supabase } from './supabase'
+import { useEffect, useState } from 'react'
 
 type VideoHistory = {
   id: string
@@ -11,134 +6,101 @@ type VideoHistory = {
   duration: string
   quality: string
   style: string
-  video_url: string
-  created_at: string
+  videoUrl: string
+  createdAt: string
 }
 
 export default function TextToVideo() {
-  const [prompt, setPrompt] =
-    useState('')
-
-  const [duration, setDuration] =
-    useState('5')
-
-  const [quality, setQuality] =
-    useState('720p')
-
-  const [style, setStyle] =
-    useState('Cinematic')
+  const [prompt, setPrompt] = useState('')
+  const [duration, setDuration] = useState('5')
+  const [quality, setQuality] = useState('720p')
+  const [style, setStyle] = useState('Cinematic')
 
   const [generating, setGenerating] =
     useState(false)
 
-  const [videoUrl, setVideoUrl] =
-    useState('')
+  const [videoUrl, setVideoUrl] = useState('')
 
-  const [message, setMessage] =
-    useState('')
+  const [message, setMessage] = useState('')
 
   const [history, setHistory] =
     useState<VideoHistory[]>([])
 
-  // --------------------------------
-  // LOAD USER VIDEO HISTORY
-  // --------------------------------
-
-  async function loadHistory() {
-    const {
-      data: sessionData,
-    } = await supabase.auth.getSession()
-
-    const user =
-      sessionData.session?.user
-
-    if (!user) {
-      setHistory([])
-      return
-    }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from('video_generations')
-      .select(
-        'id, prompt, duration, quality, style, video_url, created_at'
-      )
-      .eq('user_id', user.id)
-      .order(
-        'created_at',
-        {
-          ascending: false,
-        }
-      )
-
-    if (error) {
-      console.error(error)
-
-      setMessage(
-        'Unable to load video history.'
-      )
-
-      return
-    }
-
-    setHistory(
-      (data || []) as VideoHistory[]
-    )
-  }
+  // -----------------------------
+  // LOAD LOCAL HISTORY
+  // -----------------------------
 
   useEffect(() => {
-    loadHistory()
+    const saved = localStorage.getItem(
+      'toolmaster_video_history'
+    )
+
+    if (!saved) return
+
+    try {
+      const parsed = JSON.parse(saved)
+
+      if (Array.isArray(parsed)) {
+        setHistory(parsed)
+      }
+    } catch {
+      setHistory([])
+    }
   }, [])
 
-  // --------------------------------
+  // -----------------------------
+  // SAVE HISTORY
+  // -----------------------------
+
+  function saveHistory(
+    item: VideoHistory
+  ) {
+    setHistory((previous) => {
+      const updated = [
+        item,
+        ...previous,
+      ]
+
+      localStorage.setItem(
+        'toolmaster_video_history',
+        JSON.stringify(updated)
+      )
+
+      return updated
+    })
+  }
+
+  // -----------------------------
   // GENERATE VIDEO
-  // --------------------------------
+  // -----------------------------
 
   async function generateVideo() {
-    if (!prompt.trim()) {
+    const cleanPrompt = prompt.trim()
+
+    if (!cleanPrompt) {
       setMessage(
         'Please enter a video description.'
       )
-
       return
     }
 
     setGenerating(true)
-    setMessage('')
+    setMessage(
+      'AI is creating your video. Please wait...'
+    )
     setVideoUrl('')
 
     try {
-      const {
-        data: sessionData,
-      } =
-        await supabase.auth.getSession()
-
-      const accessToken =
-        sessionData.session?.access_token
-
-      if (!accessToken) {
-        throw new Error(
-          'Please login before generating a video.'
-        )
-      }
-
       const response = await fetch(
         '/api/generate-video',
         {
           method: 'POST',
-
           headers: {
             'Content-Type':
               'application/json',
-
-            Authorization:
-              `Bearer ${accessToken}`,
           },
-
           body: JSON.stringify({
-            prompt,
+            prompt: cleanPrompt,
             duration,
             quality,
             style,
@@ -146,8 +108,13 @@ export default function TextToVideo() {
         }
       )
 
-      const data =
-        await response.json()
+      let data: any = {}
+
+      try {
+        data = await response.json()
+      } catch {
+        data = {}
+      }
 
       if (!response.ok) {
         throw new Error(
@@ -162,17 +129,24 @@ export default function TextToVideo() {
         )
       }
 
-      setVideoUrl(
-        data.videoUrl
-      )
+      setVideoUrl(data.videoUrl)
+
+      const historyItem: VideoHistory = {
+        id: Date.now().toString(),
+        prompt: cleanPrompt,
+        duration,
+        quality,
+        style,
+        videoUrl: data.videoUrl,
+        createdAt:
+          new Date().toLocaleString(),
+      }
+
+      saveHistory(historyItem)
 
       setMessage(
-        data.historySaved
-          ? 'Video generated and saved successfully! 🎉'
-          : 'Video generated successfully!'
+        '🎉 Video generated successfully!'
       )
-
-      await loadHistory()
     } catch (error: any) {
       console.error(error)
 
@@ -185,122 +159,75 @@ export default function TextToVideo() {
     }
   }
 
-  // --------------------------------
-  // DELETE HISTORY
-  // --------------------------------
-
-  async function deleteVideo(
-    id: string
-  ) {
-    const confirmed =
-      window.confirm(
-        'Delete this video from your history?'
-      )
-
-    if (!confirmed) return
-
-    const {
-      error,
-    } = await supabase
-      .from('video_generations')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      setMessage(error.message)
-      return
-    }
-
-    setHistory(
-      history.filter(
-        (video) =>
-          video.id !== id
-      )
-    )
-
-    setMessage(
-      'Video deleted successfully.'
-    )
-  }
-
-  // --------------------------------
-  // CLEAR HISTORY
-  // --------------------------------
-
-  async function clearHistory() {
-    const confirmed =
-      window.confirm(
-        'Delete all your video history?'
-      )
-
-    if (!confirmed) return
-
-    const {
-      data: sessionData,
-    } =
-      await supabase.auth.getSession()
-
-    const user =
-      sessionData.session?.user
-
-    if (!user) return
-
-    const {
-      error,
-    } = await supabase
-      .from('video_generations')
-      .delete()
-      .eq(
-        'user_id',
-        user.id
-      )
-
-    if (error) {
-      setMessage(error.message)
-      return
-    }
-
-    setHistory([])
-
-    setMessage(
-      'Video history cleared.'
-    )
-  }
-
-  // --------------------------------
+  // -----------------------------
   // DOWNLOAD
-  // --------------------------------
+  // -----------------------------
 
   function downloadVideo(
     url: string
   ) {
     const link =
-      document.createElement(
-        'a'
-      )
+      document.createElement('a')
 
     link.href = url
     link.download =
-      'toolmaster-video.mp4'
+      'toolmaster-ai-video.mp4'
     link.target = '_blank'
+    link.rel = 'noopener noreferrer'
 
-    document.body.appendChild(
-      link
-    )
-
+    document.body.appendChild(link)
     link.click()
+    document.body.removeChild(link)
+  }
 
-    document.body.removeChild(
-      link
+  // -----------------------------
+  // DELETE
+  // -----------------------------
+
+  function deleteVideo(
+    id: string
+  ) {
+    const updated =
+      history.filter(
+        (video) =>
+          video.id !== id
+      )
+
+    setHistory(updated)
+
+    localStorage.setItem(
+      'toolmaster_video_history',
+      JSON.stringify(updated)
+    )
+  }
+
+  // -----------------------------
+  // CLEAR
+  // -----------------------------
+
+  function clearHistory() {
+    const confirmed =
+      window.confirm(
+        'Clear all video history?'
+      )
+
+    if (!confirmed) return
+
+    setHistory([])
+
+    localStorage.removeItem(
+      'toolmaster_video_history'
     )
   }
 
   return (
-    <div className="text-video-page">
-      <div className="text-video-container">
+    <div className="ttv-page">
+      <div className="ttv-container">
 
-        <div className="text-video-header">
-          <div className="text-video-icon">
+        {/* HEADER */}
+
+        <div className="ttv-header">
+          <div className="ttv-icon">
             🎬
           </div>
 
@@ -314,11 +241,13 @@ export default function TextToVideo() {
           </p>
         </div>
 
-        <div className="video-generator-grid">
+        {/* GENERATOR */}
+
+        <div className="ttv-generator">
 
           {/* CREATE */}
 
-          <section className="video-panel">
+          <section className="ttv-card">
 
             <h2>
               ✨ Create Your Video
@@ -336,10 +265,10 @@ export default function TextToVideo() {
                 )
               }
               placeholder="Example: A beautiful sunset over mountains, cinematic camera movement, realistic clouds..."
-              rows={8}
+              rows={7}
             />
 
-            <div className="video-options">
+            <div className="ttv-options">
 
               <div>
                 <label>
@@ -354,20 +283,12 @@ export default function TextToVideo() {
                     )
                   }
                 >
-                  <option value="3">
-                    3 Seconds
-                  </option>
-
                   <option value="5">
                     5 Seconds
                   </option>
 
                   <option value="10">
                     10 Seconds
-                  </option>
-
-                  <option value="15">
-                    15 Seconds
                   </option>
                 </select>
               </div>
@@ -441,21 +362,17 @@ export default function TextToVideo() {
             </div>
 
             <button
-              className="generate-video-button"
-              onClick={
-                generateVideo
-              }
-              disabled={
-                generating
-              }
+              className="ttv-generate"
+              onClick={generateVideo}
+              disabled={generating}
             >
               {generating
-                ? '⏳ Generating...'
+                ? '⏳ Generating Video...'
                 : '🎬 Generate Video'}
             </button>
 
             {message && (
-              <div className="video-message">
+              <div className="ttv-message">
                 {message}
               </div>
             )}
@@ -464,15 +381,15 @@ export default function TextToVideo() {
 
           {/* PREVIEW */}
 
-          <section className="video-panel">
+          <section className="ttv-card">
 
             <h2>
               🎥 Preview
             </h2>
 
             {generating ? (
-              <div className="video-loading">
-                <div className="loading-icon">
+              <div className="ttv-empty">
+                <div className="ttv-loading-icon">
                   ⚙️
                 </div>
 
@@ -481,22 +398,21 @@ export default function TextToVideo() {
                 </h3>
 
                 <p>
-                  AI is processing
-                  your prompt.
+                  AI is processing your
+                  prompt.
                 </p>
               </div>
             ) : videoUrl ? (
               <div>
-
                 <video
                   src={videoUrl}
                   controls
                   playsInline
-                  className="generated-video"
+                  className="ttv-video"
                 />
 
                 <button
-                  className="download-video-button"
+                  className="ttv-download"
                   onClick={() =>
                     downloadVideo(
                       videoUrl
@@ -505,11 +421,10 @@ export default function TextToVideo() {
                 >
                   ⬇️ Download Video
                 </button>
-
               </div>
             ) : (
-              <div className="video-empty">
-                <div>
+              <div className="ttv-empty">
+                <div className="ttv-empty-icon">
                   🎞️
                 </div>
 
@@ -526,9 +441,9 @@ export default function TextToVideo() {
 
         {/* HISTORY */}
 
-        <section className="video-history">
+        <section className="ttv-history">
 
-          <div className="history-header">
+          <div className="ttv-history-header">
 
             <div>
               <h2>
@@ -536,13 +451,14 @@ export default function TextToVideo() {
               </h2>
 
               <p>
-                Your generated video history
+                Your generated video
+                history
               </p>
             </div>
 
             {history.length > 0 && (
               <button
-                className="clear-history-button"
+                className="ttv-clear"
                 onClick={
                   clearHistory
                 }
@@ -554,7 +470,7 @@ export default function TextToVideo() {
           </div>
 
           {history.length === 0 ? (
-            <div className="history-empty">
+            <div className="ttv-no-history">
               <div>
                 🎞️
               </div>
@@ -565,37 +481,42 @@ export default function TextToVideo() {
               </p>
             </div>
           ) : (
-            <div className="history-grid">
+            <div className="ttv-history-grid">
 
               {history.map(
                 (video) => (
                   <div
                     key={video.id}
-                    className="history-card"
+                    className="ttv-history-card"
                   >
 
                     <video
                       src={
-                        video.video_url
+                        video.videoUrl
                       }
                       controls
                       playsInline
+                      className="ttv-history-video"
                     />
 
-                    <p>
+                    <p className="ttv-prompt">
                       {video.prompt}
                     </p>
 
-                    <div className="video-tags">
+                    <div className="ttv-tags">
 
                       <span>
                         ⏱️{' '}
-                        {video.duration}s
+                        {
+                          video.duration
+                        }s
                       </span>
 
                       <span>
                         🎥{' '}
-                        {video.quality}
+                        {
+                          video.quality
+                        }
                       </span>
 
                       <span>
@@ -606,17 +527,18 @@ export default function TextToVideo() {
                     </div>
 
                     <small>
-                      {new Date(
-                        video.created_at
-                      ).toLocaleString()}
+                      {
+                        video.createdAt
+                      }
                     </small>
 
-                    <div className="history-actions">
+                    <div className="ttv-card-actions">
 
                       <button
+                        className="ttv-download-small"
                         onClick={() =>
                           downloadVideo(
-                            video.video_url
+                            video.videoUrl
                           )
                         }
                       >
@@ -624,6 +546,7 @@ export default function TextToVideo() {
                       </button>
 
                       <button
+                        className="ttv-delete"
                         onClick={() =>
                           deleteVideo(
                             video.id
@@ -643,6 +566,11 @@ export default function TextToVideo() {
           )}
 
         </section>
+
+        <div className="ttv-footer">
+          🔒 Video history is saved
+          in this browser.
+        </div>
 
       </div>
     </div>
