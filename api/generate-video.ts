@@ -2,19 +2,13 @@ import { fal } from '@fal-ai/client'
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req: any, res: any) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({
-      success: false,
       error: 'Method not allowed',
     })
   }
 
   try {
-    // -----------------------------------
-    // GET REQUEST DATA
-    // -----------------------------------
-
     const {
       prompt,
       duration = '5',
@@ -22,211 +16,123 @@ export default async function handler(req: any, res: any) {
       style = 'Cinematic',
     } = req.body || {}
 
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    if (!prompt || !prompt.trim()) {
       return res.status(400).json({
-        success: false,
         error: 'Video prompt is required.',
       })
     }
 
-    // -----------------------------------
-    // FAL AI
-    // -----------------------------------
-
     const falKey = process.env.FAL_KEY
 
     if (!falKey) {
-      console.error('FAL_KEY is missing')
-
       return res.status(500).json({
-        success: false,
-        error: 'FAL_KEY is not configured in Vercel.',
+        error: 'FAL_KEY is missing from environment variables.',
       })
     }
 
-    // Configure fal.ai
+    const supabaseUrl = process.env.SUPABASE_URL
+    const serviceRoleKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return res.status(500).json({
+        error:
+          'Supabase server environment variables are missing.',
+      })
+    }
+
     fal.config({
       credentials: falKey,
     })
 
-    // -----------------------------------
-    // SUPABASE
-    // -----------------------------------
-
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl) {
-      console.error('SUPABASE_URL is missing')
-
-      return res.status(500).json({
-        success: false,
-        error: 'SUPABASE_URL is not configured in Vercel.',
-      })
-    }
-
-    if (!supabaseKey) {
-      console.error(
-        'SUPABASE_SERVICE_ROLE_KEY is missing'
-      )
-
-      return res.status(500).json({
-        success: false,
-        error:
-          'SUPABASE_SERVICE_ROLE_KEY is not configured in Vercel.',
-      })
-    }
-
     const supabase = createClient(
       supabaseUrl,
-      supabaseKey
+      serviceRoleKey
     )
 
-    // -----------------------------------
-    // BUILD VIDEO PROMPT
-    // -----------------------------------
+    const allowedDurations = [
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15',
+    ]
 
-    const finalPrompt = `
-${prompt.trim()}.
+    const selectedDuration = allowedDurations.includes(
+      String(duration)
+    )
+      ? String(duration)
+      : '5'
+
+    const finalPrompt = `${prompt.trim()}
+
 Visual style: ${style}.
-High quality ${quality} video.
-Cinematic camera movement.
-Detailed environment.
-Natural lighting.
-Smooth realistic motion.
-`.trim()
-
-    console.log('Starting video generation...')
-
-    // -----------------------------------
-    // GENERATE VIDEO WITH FAL
-    // -----------------------------------
+Requested quality: ${quality}.
+High quality, detailed visuals, smooth motion, cinematic composition.`
 
     const result = await fal.subscribe(
-      'fal-ai/kling-video/v3/turbo/standard/text-to-video',
+      'fal-ai/kling-video/v3/standard/text-to-video',
       {
         input: {
           prompt: finalPrompt,
-          duration: duration,
+          duration: selectedDuration,
           aspect_ratio: '16:9',
+          generate_audio: true,
+          shot_type: 'customize',
         },
-
         logs: true,
-
-        onQueueUpdate(update: any) {
-          if (update.status === 'IN_PROGRESS') {
-            console.log('FAL video generation in progress...')
-          }
-
-          if (update.status === 'IN_QUEUE') {
-            console.log('FAL video generation queued...')
-          }
-        },
       }
     )
 
-    console.log('FAL generation completed.')
-
-    // -----------------------------------
-    // GET VIDEO URL
-    // -----------------------------------
-
-    const videoUrl = result?.data?.video?.url
+    const videoUrl = result.data?.video?.url
 
     if (!videoUrl) {
-      console.error(
-        'FAL response did not contain video URL:',
-        result?.data
-      )
-
       return res.status(500).json({
-        success: false,
         error:
-          'Video was generated but no video URL was returned by FAL.',
+          'Video generation completed but no video URL was returned.',
       })
     }
 
-    console.log('Video URL received.')
+    const { error: historyError } = await supabase
+      .from('video_generations')
+      .insert({
+        prompt: prompt.trim(),
+        duration: selectedDuration,
+        quality,
+        style,
+        video_url: videoUrl,
+      })
 
-    // -----------------------------------
-    // SAVE HISTORY TO SUPABASE
-    // -----------------------------------
-
-    let historySaved = false
-
-    try {
-      const { error: databaseError } =
-        await supabase
-          .from('video_generations')
-          .insert({
-            prompt: prompt.trim(),
-            duration: duration,
-            quality: quality,
-            style: style,
-            video_url: videoUrl,
-          })
-
-      if (databaseError) {
-        console.error(
-          'Supabase history error:',
-          databaseError
-        )
-      } else {
-        historySaved = true
-      }
-    } catch (supabaseError) {
+    if (historyError) {
       console.error(
-        'Supabase unexpected error:',
-        supabaseError
+        'Video history save failed:',
+        historyError
       )
-    }
 
-    // -----------------------------------
-    // SUCCESS
-    // -----------------------------------
+      return res.status(200).json({
+        success: true,
+        videoUrl,
+        historySaved: false,
+      })
+    }
 
     return res.status(200).json({
       success: true,
       videoUrl,
-      historySaved,
+      historySaved: true,
     })
   } catch (error: any) {
-    console.error(
-      'Video generation error:',
-      error
-    )
-
-    // -----------------------------------
-    // FAL AUTH ERROR
-    // -----------------------------------
-
-    if (error?.status === 401) {
-      return res.status(401).json({
-        success: false,
-        error:
-          'FAL authentication failed. Please check your FAL_KEY and FAL account/model access.',
-      })
-    }
-
-    // -----------------------------------
-    // FAL FORBIDDEN ERROR
-    // -----------------------------------
-
-    if (error?.status === 403) {
-      return res.status(403).json({
-        success: false,
-        error:
-          'FAL access was forbidden. Your FAL account or API key may not have access to this video model.',
-      })
-    }
-
-    // -----------------------------------
-    // OTHER ERRORS
-    // -----------------------------------
+    console.error('Generate video error:', error)
 
     return res.status(500).json({
-      success: false,
       error:
         error?.message ||
         'Something went wrong while generating the video.',
