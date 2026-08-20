@@ -650,7 +650,8 @@ function App() {
 
                 {activePage === 'tools' &&
                   'Tools Management'}
-
+{activePage === 'text-to-video' &&
+  'Text to Video'}
                 {activePage === 'statistics' &&
                   'Statistics'}
 
