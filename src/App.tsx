@@ -47,6 +47,82 @@ type VideoGeneration = {
 }
 
 function App() {
+    const [activeTool, setActiveTool] = useState('dashboard')
+
+  const [videoPrompt, setVideoPrompt] = useState('')
+  const [selectedPlan, setSelectedPlan] = useState('free')
+  const [videoCredits, setVideoCredits] = useState(3)
+  const [videoGenerating, setVideoGenerating] = useState(false)
+  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null)
+
+  const videoPlans = [
+    {
+      id: 'free',
+      name: 'Free',
+      price: '$0',
+      credits: 3,
+      quality: '720p',
+      description: 'Limited video generations',
+    },
+    {
+      id: 'basic',
+      name: 'Basic',
+      price: '$9.99/mo',
+      credits: 30,
+      quality: '1080p',
+      description: 'More generations + HD',
+    },
+    {
+      id: 'popular',
+      name: 'Popular',
+      price: '$19.99/mo',
+      credits: 100,
+      quality: '1080p',
+      description: 'More credits + HD/1080p',
+      popular: true,
+    },
+    {
+      id: 'premium',
+      name: 'Premium',
+      price: '$39.99/mo',
+      credits: 300,
+      quality: '1080p',
+      description: 'Highest limits + premium features',
+    },
+  ]
+
+  async function generateVideo() {
+    if (!videoPrompt.trim()) {
+      setMessage('Please enter a video prompt.')
+      return
+    }
+
+    if (videoCredits <= 0) {
+      setMessage('You have no video credits remaining.')
+      return
+    }
+
+    setVideoGenerating(true)
+    setMessage('Preparing your video...')
+
+    try {
+      // Real AI video API will be connected here.
+      await new Promise((resolve) =>
+        setTimeout(resolve, 2000)
+      )
+
+      setVideoCredits((credits) => credits - 1)
+      setGeneratedVideo(null)
+
+      setMessage(
+        'Video generation system is ready. AI video API will be connected next.'
+      )
+    } catch {
+      setMessage('Video generation failed. Please try again.')
+    } finally {
+      setVideoGenerating(false)
+    }
+  }
   const [session, setSession] = useState<any>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
 
