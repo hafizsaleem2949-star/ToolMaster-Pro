@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { supabase } from './supabase'
 
 type VideoHistory = {
   id: string
@@ -6,8 +7,8 @@ type VideoHistory = {
   duration: string
   quality: string
   style: string
-  videoUrl: string
-  createdAt: string
+  video_url: string
+  created_at: string
 }
 
 export default function TextToVideo() {
@@ -19,30 +20,45 @@ export default function TextToVideo() {
   const [generating, setGenerating] = useState(false)
   const [videoUrl, setVideoUrl] = useState('')
   const [message, setMessage] = useState('')
-
   const [history, setHistory] = useState<VideoHistory[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
 
   useEffect(() => {
-    const saved = localStorage.getItem('toolmaster_video_history')
-
-    if (saved) {
-      try {
-        setHistory(JSON.parse(saved))
-      } catch {
-        setHistory([])
-      }
-    }
+    loadHistory()
   }, [])
 
-  function saveHistory(item: VideoHistory) {
-    const updated = [item, ...history]
+  async function loadHistory() {
+    setLoadingHistory(true)
 
-    setHistory(updated)
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    localStorage.setItem(
-      'toolmaster_video_history',
-      JSON.stringify(updated)
-    )
+    if (!user) {
+      setHistory([])
+      setLoadingHistory(false)
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('video_generations')
+      .select(
+        'id, prompt, duration, quality, style, video_url, created_at'
+      )
+      .eq('user_id', user.id)
+      .order('created_at', {
+        ascending: false,
+      })
+
+    if (error) {
+      console.error(error)
+      setMessage(error.message)
+      setHistory([])
+    } else {
+      setHistory((data || []) as VideoHistory[])
+    }
+
+    setLoadingHistory(false)
   }
 
   async function generateVideo() {
@@ -56,13 +72,22 @@ export default function TextToVideo() {
     setVideoUrl('')
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        throw new Error('Please login first.')
+      }
+
       const response = await fetch('/api/generate-video', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          prompt,
+          prompt: prompt.trim(),
           duration,
           quality,
           style,
@@ -84,20 +109,9 @@ export default function TextToVideo() {
       }
 
       setVideoUrl(data.videoUrl)
-
-      const historyItem: VideoHistory = {
-        id: Date.now().toString(),
-        prompt,
-        duration,
-        quality,
-        style,
-        videoUrl: data.videoUrl,
-        createdAt: new Date().toLocaleString(),
-      }
-
-      saveHistory(historyItem)
-
       setMessage('Video generated successfully!')
+
+      await loadHistory()
     } catch (error: any) {
       setMessage(
         error?.message ||
@@ -114,93 +128,81 @@ export default function TextToVideo() {
     link.href = url
     link.download = 'toolmaster-video.mp4'
     link.target = '_blank'
+    link.rel = 'noopener noreferrer'
 
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
   }
 
-  function deleteVideo(id: string) {
-    const updated = history.filter(
-      (video) => video.id !== id
+  async function deleteVideo(id: string) {
+    const confirmed = window.confirm(
+      'Delete this video from your history?'
     )
 
-    setHistory(updated)
+    if (!confirmed) return
 
-    localStorage.setItem(
-      'toolmaster_video_history',
-      JSON.stringify(updated)
+    const { error } = await supabase
+      .from('video_generations')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
+    setHistory((current) =>
+      current.filter((video) => video.id !== id)
     )
+
+    setMessage('Video deleted.')
   }
 
-  function clearHistory() {
+  async function clearHistory() {
+    const confirmed = window.confirm(
+      'Delete all your video history?'
+    )
+
+    if (!confirmed) return
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const { error } = await supabase
+      .from('video_generations')
+      .delete()
+      .eq('user_id', user.id)
+
+    if (error) {
+      setMessage(error.message)
+      return
+    }
+
     setHistory([])
-    localStorage.removeItem('toolmaster_video_history')
+    setMessage('Video history cleared.')
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        padding: '35px 20px',
-        background:
-          'linear-gradient(135deg, #07111f, #101b35, #16213e)',
-        color: '#fff',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '1200px',
-          margin: 'auto',
-        }}
-      >
+    <div className="video-page">
+      <div className="video-container">
 
-        {/* HEADER */}
+        <div className="video-header">
+          <div className="video-icon">🎬</div>
 
-        <div
-          style={{
-            textAlign: 'center',
-            marginBottom: '35px',
-          }}
-        >
-          <div style={{ fontSize: '52px' }}>🎬</div>
+          <h1>Text to Video AI</h1>
 
-          <h1
-            style={{
-              fontSize: '42px',
-              margin: '8px 0',
-            }}
-          >
-            Text to Video AI
-          </h1>
-
-          <p style={{ color: '#aab7cf' }}>
+          <p>
             Turn your text into stunning AI videos
           </p>
         </div>
 
-        {/* GENERATOR */}
+        <div className="video-generator">
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'minmax(0, 1.4fr) minmax(300px, 0.6fr)',
-            gap: '24px',
-          }}
-        >
-
-          {/* CREATE */}
-
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border:
-                '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '20px',
-              padding: '28px',
-            }}
-          >
+          <div className="video-create-card">
             <h2>✨ Create Your Video</h2>
 
             <label>Video Prompt</label>
@@ -212,32 +214,9 @@ export default function TextToVideo() {
               }
               placeholder="Example: A beautiful sunset over mountains, cinematic camera movement, realistic clouds..."
               rows={7}
-              style={{
-                width: '100%',
-                boxSizing: 'border-box',
-                marginTop: '8px',
-                padding: '16px',
-                borderRadius: '12px',
-                border:
-                  '1px solid rgba(255,255,255,0.15)',
-                background: 'rgba(0,0,0,0.25)',
-                color: '#fff',
-                resize: 'vertical',
-                fontSize: '15px',
-              }}
             />
 
-            {/* OPTIONS */}
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(3, 1fr)',
-                gap: '14px',
-                marginTop: '20px',
-              }}
-            >
+            <div className="video-options">
 
               <div>
                 <label>Duration</label>
@@ -247,19 +226,21 @@ export default function TextToVideo() {
                   onChange={(e) =>
                     setDuration(e.target.value)
                   }
-                  style={selectStyle}
                 >
+                  <option value="3">
+                    3 Seconds
+                  </option>
+
                   <option value="5">
                     5 Seconds
                   </option>
+
                   <option value="10">
                     10 Seconds
                   </option>
+
                   <option value="15">
                     15 Seconds
-                  </option>
-                  <option value="30">
-                    30 Seconds
                   </option>
                 </select>
               </div>
@@ -272,14 +253,15 @@ export default function TextToVideo() {
                   onChange={(e) =>
                     setQuality(e.target.value)
                   }
-                  style={selectStyle}
                 >
                   <option value="480p">
                     480p
                   </option>
+
                   <option value="720p">
                     720p HD
                   </option>
+
                   <option value="1080p">
                     1080p
                   </option>
@@ -294,7 +276,6 @@ export default function TextToVideo() {
                   onChange={(e) =>
                     setStyle(e.target.value)
                   }
-                  style={selectStyle}
                 >
                   <option>Cinematic</option>
                   <option>Realistic</option>
@@ -307,27 +288,10 @@ export default function TextToVideo() {
 
             </div>
 
-            {/* GENERATE */}
-
             <button
+              className="generate-video-button"
               onClick={generateVideo}
               disabled={generating}
-              style={{
-                width: '100%',
-                marginTop: '24px',
-                padding: '16px',
-                border: 0,
-                borderRadius: '12px',
-                background: generating
-                  ? '#475569'
-                  : 'linear-gradient(90deg,#2563eb,#7c3aed)',
-                color: '#fff',
-                fontSize: '17px',
-                fontWeight: 700,
-                cursor: generating
-                  ? 'not-allowed'
-                  : 'pointer',
-              }}
             >
               {generating
                 ? '⏳ Generating Video...'
@@ -335,383 +299,173 @@ export default function TextToVideo() {
             </button>
 
             {message && (
-              <div
-                style={{
-                  marginTop: '15px',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  background:
-                    'rgba(34,197,94,0.12)',
-                  color: '#86efac',
-                  textAlign: 'center',
-                }}
-              >
+              <div className="video-message">
                 {message}
               </div>
             )}
           </div>
 
-          {/* PREVIEW */}
-
-          <div
-            style={{
-              background:
-                'rgba(255,255,255,0.06)',
-              border:
-                '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '20px',
-              padding: '24px',
-            }}
-          >
+          <div className="video-preview-card">
             <h2>🎥 Preview</h2>
 
             {generating ? (
-              <div
-                style={{
-                  minHeight: '300px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  color: '#aab7cf',
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      fontSize: '50px',
-                    }}
-                  >
-                    ⚙️
-                  </div>
-
-                  <h3>
-                    Creating your video...
-                  </h3>
-
-                  <p>
-                    AI is processing your prompt.
-                  </p>
+              <div className="video-empty">
+                <div className="loading-video-icon">
+                  ⚙️
                 </div>
+
+                <h3>
+                  Creating your video...
+                </h3>
+
+                <p>
+                  AI is processing your prompt.
+                  Please wait.
+                </p>
               </div>
             ) : videoUrl ? (
               <div>
-
                 <video
                   src={videoUrl}
                   controls
+                  autoPlay
                   style={{
                     width: '100%',
-                    borderRadius: '12px',
+                    borderRadius: '14px',
                     background: '#000',
                   }}
                 />
 
                 <button
+                  className="download-video-button"
                   onClick={() =>
                     downloadVideo(videoUrl)
                   }
-                  style={{
-                    width: '100%',
-                    marginTop: '15px',
-                    padding: '14px',
-                    border: 0,
-                    borderRadius: '10px',
-                    background: '#16a34a',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    cursor: 'pointer',
-                  }}
                 >
                   ⬇️ Download Video
                 </button>
-
               </div>
             ) : (
-              <div
-                style={{
-                  minHeight: '300px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  color: '#718096',
-                }}
-              >
-                <div>
-                  <div
-                    style={{ fontSize: '55px' }}
-                  >
-                    🎞️
-                  </div>
-
-                  <p>
-                    Your generated video will
-                    appear here.
-                  </p>
+              <div className="video-empty">
+                <div className="video-placeholder-icon">
+                  🎞️
                 </div>
+
+                <p>
+                  Your generated video will
+                  appear here.
+                </p>
               </div>
             )}
           </div>
 
         </div>
 
-        {/* HISTORY */}
+        <section className="video-history">
 
-        <section
-          style={{
-            marginTop: '45px',
-          }}
-        >
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px',
-              gap: '15px',
-            }}
-          >
-
+          <div className="video-history-header">
             <div>
-              <h2
-                style={{
-                  marginBottom: '5px',
-                }}
-              >
-                📜 My Videos
-              </h2>
+              <h2>📜 My Videos</h2>
 
-              <p
-                style={{
-                  color: '#9ca9bf',
-                  margin: 0,
-                }}
-              >
+              <p>
                 Your generated video history
               </p>
             </div>
 
             {history.length > 0 && (
               <button
+                className="clear-history-button"
                 onClick={clearHistory}
-                style={{
-                  padding: '10px 15px',
-                  borderRadius: '9px',
-                  border:
-                    '1px solid rgba(239,68,68,0.4)',
-                  background:
-                    'rgba(239,68,68,0.12)',
-                  color: '#fca5a5',
-                  cursor: 'pointer',
-                }}
               >
                 🗑️ Clear History
               </button>
             )}
-
           </div>
 
-          {history.length === 0 ? (
-            <div
-              style={{
-                padding: '45px 20px',
-                textAlign: 'center',
-                borderRadius: '16px',
-                background:
-                  'rgba(255,255,255,0.05)',
-                border:
-                  '1px solid rgba(255,255,255,0.1)',
-                color: '#718096',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '50px',
-                }}
-              >
-                🎞️
-              </div>
+          {loadingHistory ? (
+            <div className="history-empty">
+              <h3>Loading history...</h3>
+            </div>
+          ) : history.length === 0 ? (
+            <div className="history-empty">
+              <div>🎞️</div>
+
+              <h3>No videos yet</h3>
 
               <p>
-                You haven't generated any videos
-                yet.
+                Generate your first AI video above.
               </p>
             </div>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  'repeat(auto-fit,minmax(280px,1fr))',
-                gap: '20px',
-              }}
-            >
+            <div className="video-history-grid">
 
               {history.map((video) => (
                 <div
+                  className="history-card"
                   key={video.id}
-                  style={{
-                    background:
-                      'rgba(255,255,255,0.06)',
-                    border:
-                      '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: '16px',
-                    padding: '15px',
-                  }}
                 >
 
                   <video
-                    src={video.videoUrl}
+                    src={video.video_url}
                     controls
-                    style={{
-                      width: '100%',
-                      borderRadius: '10px',
-                      background: '#000',
-                    }}
+                    preload="metadata"
                   />
 
-                  <p
-                    style={{
-                      fontSize: '14px',
-                      lineHeight: 1.5,
-                      marginTop: '12px',
-                    }}
-                  >
+                  <p className="history-prompt">
                     {video.prompt}
                   </p>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: '7px',
-                      marginBottom: '12px',
-                    }}
-                  >
-
-                    <span style={tagStyle}>
+                  <div className="video-tags">
+                    <span>
                       ⏱️ {video.duration}s
                     </span>
 
-                    <span style={tagStyle}>
+                    <span>
                       🎥 {video.quality}
                     </span>
 
-                    <span style={tagStyle}>
+                    <span>
                       🎨 {video.style}
                     </span>
-
                   </div>
 
-                  <small
-                    style={{
-                      color: '#718096',
-                    }}
-                  >
-                    {video.createdAt}
+                  <small>
+                    {new Date(
+                      video.created_at
+                    ).toLocaleString()}
                   </small>
 
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns:
-                        '1fr 1fr',
-                      gap: '8px',
-                      marginTop: '12px',
-                    }}
-                  >
+                  <div className="history-actions">
 
                     <button
+                      className="history-download"
                       onClick={() =>
                         downloadVideo(
-                          video.videoUrl
+                          video.video_url
                         )
                       }
-                      style={downloadStyle}
                     >
                       ⬇️ Download
                     </button>
 
                     <button
+                      className="history-delete"
                       onClick={() =>
                         deleteVideo(video.id)
                       }
-                      style={deleteStyle}
                     >
                       🗑️ Delete
                     </button>
 
                   </div>
-
                 </div>
               ))}
 
             </div>
           )}
-
         </section>
-
-        {/* FOOTER NOTE */}
-
-        <div
-          style={{
-            marginTop: '40px',
-            padding: '18px',
-            textAlign: 'center',
-            borderRadius: '12px',
-            background:
-              'rgba(59,130,246,0.08)',
-            color: '#93c5fd',
-          }}
-        >
-          🔒 Your video history is saved in
-          this browser.
-        </div>
 
       </div>
     </div>
   )
-}
-
-const selectStyle = {
-  width: '100%',
-  padding: '12px',
-  marginTop: '7px',
-  borderRadius: '9px',
-  border:
-    '1px solid rgba(255,255,255,0.15)',
-  background: '#111827',
-  color: '#fff',
-  fontSize: '14px',
-}
-
-const tagStyle = {
-  padding: '5px 8px',
-  borderRadius: '7px',
-  background: 'rgba(255,255,255,0.07)',
-  color: '#cbd5e1',
-  fontSize: '12px',
-}
-
-const downloadStyle = {
-  padding: '10px',
-  border: 0,
-  borderRadius: '8px',
-  background: '#16a34a',
-  color: '#fff',
-  fontWeight: 700,
-  cursor: 'pointer',
-}
-
-const deleteStyle = {
-  padding: '10px',
-  border: 0,
-  borderRadius: '8px',
-  background: '#991b1b',
-  color: '#fff',
-  fontWeight: 700,
-  cursor: 'pointer',
 }
