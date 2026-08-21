@@ -102,11 +102,9 @@ export default async function handler(
           prompt: finalPrompt,
           duration: safeDuration,
           resolution:
-            quality === '480p'
-              ? '480p'
-              : quality === '1080p'
-                ? '1080p'
-                : '720p',
+  quality === '1080p'
+    ? '1080p'
+    : '720p',
         },
         logs: true,
       }
