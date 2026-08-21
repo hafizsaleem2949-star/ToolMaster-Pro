@@ -8,6 +8,8 @@ type RequestBody = {
   style?: string
 }
 
+type WanDuration = '5' | '10'
+
 export default async function handler(
   req: any,
   res: any
@@ -89,14 +91,8 @@ export default async function handler(
     // -----------------------------
     // VIDEO GENERATION
     // -----------------------------
-    //
-    // Wan 2.5 currently supports
-    // 5 or 10 second generations.
-    //
-    // We normalize unsupported values.
-    //
 
-    const safeDuration =
+    const safeDuration: WanDuration =
       duration === '10' ? '10' : '5'
 
     const result = await fal.subscribe(
@@ -104,6 +100,13 @@ export default async function handler(
       {
         input: {
           prompt: finalPrompt,
+          duration: safeDuration,
+          resolution:
+            quality === '480p'
+              ? '480p'
+              : quality === '1080p'
+                ? '1080p'
+                : '720p',
         },
         logs: true,
       }
@@ -151,7 +154,6 @@ export default async function handler(
         databaseError
       )
 
-      // Video already exists, so return it.
       return res.status(200).json({
         success: true,
         videoUrl,
@@ -160,10 +162,6 @@ export default async function handler(
           'Video generated but history could not be saved.',
       })
     }
-
-    // -----------------------------
-    // SUCCESS
-    // -----------------------------
 
     return res.status(200).json({
       success: true,
