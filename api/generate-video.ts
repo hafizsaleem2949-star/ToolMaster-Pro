@@ -2,10 +2,6 @@ import { fal } from '@fal-ai/client'
 import { createClient } from '@supabase/supabase-js'
 
 export default async function handler(req: any, res: any) {
-  // --------------------------------
-  // METHOD CHECK
-  // --------------------------------
-
   if (req.method !== 'POST') {
     return res.status(405).json({
       error: 'Method not allowed',
@@ -13,10 +9,6 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    // --------------------------------
-    // REQUEST DATA
-    // --------------------------------
-
     const {
       prompt,
       duration = '5',
@@ -24,16 +16,17 @@ export default async function handler(req: any, res: any) {
       style = 'Cinematic',
     } = req.body || {}
 
-    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+    if (
+      !prompt ||
+      typeof prompt !== 'string' ||
+      !prompt.trim()
+    ) {
       return res.status(400).json({
         error: 'Video prompt is required.',
       })
     }
 
-    // --------------------------------
-    // VALIDATE DURATION
-    // Kling V3 supports 3-15 seconds
-    // --------------------------------
+    const selectedDuration = String(duration)
 
     const allowedDurations = [
       '3',
@@ -51,23 +44,29 @@ export default async function handler(req: any, res: any) {
       '15',
     ]
 
-    const selectedDuration = String(duration)
-
     if (!allowedDurations.includes(selectedDuration)) {
       return res.status(400).json({
-        error: 'Invalid video duration. Use 3-15 seconds.',
+        error: 'Invalid duration. Please select 3-15 seconds.',
       })
     }
-
-    // --------------------------------
-    // FAL KEY
-    // --------------------------------
 
     const falKey = process.env.FAL_KEY
 
     if (!falKey) {
       return res.status(500).json({
-        error: 'FAL_KEY is not configured.',
+        error: 'FAL_KEY is missing in Vercel Environment Variables.',
+      })
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL
+
+    const supabaseServiceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({
+        error:
+          'SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.',
       })
     }
 
@@ -75,29 +74,14 @@ export default async function handler(req: any, res: any) {
       credentials: falKey,
     })
 
-    // --------------------------------
-    // SUPABASE CONFIG
-    // --------------------------------
-
-    const supabaseUrl = process.env.SUPABASE_URL
-    const supabaseServiceKey =
-      process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({
-        error:
-          'Supabase environment variables are not configured.',
-      })
-    }
-
     const supabase = createClient(
       supabaseUrl,
       supabaseServiceKey
     )
 
-    // --------------------------------
-    // GET LOGGED-IN USER
-    // --------------------------------
+    // -----------------------------
+    // GET USER FROM ACCESS TOKEN
+    // -----------------------------
 
     const authHeader =
       req.headers?.authorization ||
@@ -105,50 +89,46 @@ export default async function handler(req: any, res: any) {
 
     let userId: string | null = null
 
-    if (authHeader?.startsWith('Bearer ')) {
-      const accessToken = authHeader.replace(
-        'Bearer ',
-        ''
-      )
+    if (
+      authHeader &&
+      typeof authHeader === 'string' &&
+      authHeader.startsWith('Bearer ')
+    ) {
+      const token = authHeader.substring(7)
 
       const {
         data: { user },
-        error: userError,
-      } = await supabase.auth.getUser(accessToken)
+        error,
+      } = await supabase.auth.getUser(token)
 
-      if (userError) {
+      if (error) {
         console.error(
-          'Supabase user error:',
-          userError
+          'Supabase auth error:',
+          error
         )
       }
 
-      userId = user?.id || null
+      if (user) {
+        userId = user.id
+      }
     }
 
-    // --------------------------------
+    // -----------------------------
     // FINAL PROMPT
-    // --------------------------------
+    // -----------------------------
 
     const finalPrompt = [
       prompt.trim(),
       `Visual style: ${style || 'Cinematic'}.`,
-      `Quality preference: ${quality || '720p'}.`,
-      'Create a coherent cinematic video with smooth motion, detailed visuals and natural camera movement.',
+      `Quality: ${quality || '720p'}.`,
+      'Create a high quality cinematic video with smooth natural motion, detailed visuals, realistic lighting and professional camera movement.',
     ].join(' ')
 
-    // --------------------------------
-    // FAL AI VIDEO GENERATION
-    // --------------------------------
+    console.log('Starting FAL video generation')
 
-    console.log(
-      'Starting video generation...',
-      {
-        duration: selectedDuration,
-        quality,
-        style,
-      }
-    )
+    // -----------------------------
+    // FAL AI
+    // -----------------------------
 
     const result = await fal.subscribe(
       'fal-ai/kling-video/v3/standard/text-to-video',
@@ -164,12 +144,14 @@ export default async function handler(req: any, res: any) {
         onQueueUpdate(update: any) {
           if (update.status === 'IN_PROGRESS') {
             console.log(
-              'Video generation in progress...'
+              'FAL video generation in progress...'
             )
 
-            if (update.logs) {
+            if (Array.isArray(update.logs)) {
               update.logs.forEach((log: any) => {
-                console.log(log.message)
+                console.log(
+                  log?.message || log
+                )
               })
             }
           }
@@ -177,33 +159,33 @@ export default async function handler(req: any, res: any) {
       }
     )
 
-    // --------------------------------
+    // -----------------------------
     // GET VIDEO URL
-    // --------------------------------
+    // -----------------------------
 
     const videoUrl =
       result?.data?.video?.url
 
     if (!videoUrl) {
       console.error(
-        'FAL response:',
+        'FAL returned no video URL:',
         result
       )
 
       return res.status(500).json({
         error:
-          'Video was generated but no video URL was returned.',
+          'Video generation completed but no video URL was returned.',
       })
     }
 
     console.log(
-      'Video generated successfully:',
+      'Video generated:',
       videoUrl
     )
 
-    // --------------------------------
-    // SAVE TO SUPABASE
-    // --------------------------------
+    // -----------------------------
+    // SAVE HISTORY
+    // -----------------------------
 
     const historyData: Record<string, any> = {
       prompt: prompt.trim(),
@@ -213,21 +195,14 @@ export default async function handler(req: any, res: any) {
       video_url: videoUrl,
     }
 
-    // If your video_generations table has user_id,
-    // save the logged-in user's ID.
     if (userId) {
       historyData.user_id = userId
     }
 
-    const {
-      error: databaseError,
-    } = await supabase
-      .from('video_generations')
-      .insert(historyData)
-
-    // --------------------------------
-    // DATABASE ERROR
-    // --------------------------------
+    const { error: databaseError } =
+      await supabase
+        .from('video_generations')
+        .insert(historyData)
 
     if (databaseError) {
       console.error(
@@ -235,19 +210,16 @@ export default async function handler(req: any, res: any) {
         databaseError
       )
 
-      // Video already generated.
-      // Don't make user lose the video.
+      // Video successfully generated.
+      // Database failure should not hide the video.
       return res.status(200).json({
         success: true,
         videoUrl,
         historySaved: false,
-        databaseError: databaseError.message,
+        databaseError:
+          databaseError.message,
       })
     }
-
-    // --------------------------------
-    // SUCCESS
-    // --------------------------------
 
     return res.status(200).json({
       success: true,
