@@ -1,32 +1,31 @@
-# React + TypeScript + Vite
+# ToolMaster Pro
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Fresh multi-tool website foundation built with React + Vite.
 
-Currently, two official plugins are available:
+## Included
+- 100+ online tool entries and categories
+- Search and category filtering
+- Responsive modern UI
+- Individual tool workspace
+- Browser-local demo functions for many text/developer tools
+- Admin dashboard foundation
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+## Run
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Build
+```bash
+npm run build
+```
+
+This project is intentionally frontend-first. PDF processing, authentication, database storage, payments, and production admin APIs should be connected as separate secure backend modules rather than putting secrets in the browser.
+
+
+## Student AI Helper
+The Student AI Helper UI accepts questions and study-file uploads. For real AI answers, connect a secure server-side AI API. Never place an AI provider secret/API key in client-side React code.
+
+## Text to Video
+Includes a Text to Video project UI with prompt, style, duration and preview controls. Connect a secure server-side video generation provider for real rendering.
